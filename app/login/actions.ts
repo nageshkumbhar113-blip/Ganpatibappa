@@ -24,7 +24,7 @@ export async function loginAction(
   const parsed = LoginSchema.safeParse({
     email: formData.get('email'),
     password: formData.get('password'),
-    redirectTo: formData.get('redirectTo'),
+    redirectTo: formData.get('redirectTo') ?? undefined,
   })
 
   if (!parsed.success) {
