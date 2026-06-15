@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { NextResponse } from 'next/server'
-import { authenticator } from 'otplib'
+import { authenticator } from 'otplib/preset/default'
 import { z } from 'zod'
 
 const schema = z.object({ token: z.string().length(6) })

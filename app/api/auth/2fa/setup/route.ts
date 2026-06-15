@@ -1,14 +1,15 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { requireFeature } from '@/lib/middleware/plan-guard'
+import { checkFeature } from '@/lib/middleware/plan-guard'
 import { headers } from 'next/headers'
 import { NextResponse } from 'next/server'
-import { authenticator } from 'otplib'
+import { authenticator } from 'otplib/preset/default'
 import QRCode from 'qrcode'
 
 export async function POST() {
   const shopId = headers().get('x-shop-id')!
-  await requireFeature(shopId, 'two_factor_auth')
+  const has2FA = await checkFeature(shopId, 'two_factor_auth')
+  if (!has2FA) return NextResponse.json({ error: '2FA requires Premium plan' }, { status: 403 })
 
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
