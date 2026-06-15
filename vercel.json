@@ -27,18 +27,5 @@
       ]
     }
   ],
-  "rewrites": [
-    {
-      "source": "/sitemap.xml",
-      "destination": "/api/sitemap/:shopSlug"
-    },
-    {
-      "source": "/robots.txt",
-      "destination": "/api/robots/:shopSlug"
-    },
-    {
-      "source": "/manifest.json",
-      "destination": "/api/manifest/:shopSlug"
-    }
-  ]
+  "rewrites": []
 }
