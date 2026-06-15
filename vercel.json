@@ -1,0 +1,44 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/check-subscriptions",
+      "schedule": "0 2 * * *"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
+        { "key": "X-XSS-Protection", "value": "1; mode=block" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" },
+        {
+          "key": "Strict-Transport-Security",
+          "value": "max-age=63072000; includeSubDomains; preload"
+        }
+      ]
+    },
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex" }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/sitemap.xml",
+      "destination": "/api/sitemap/:shopSlug"
+    },
+    {
+      "source": "/robots.txt",
+      "destination": "/api/robots/:shopSlug"
+    },
+    {
+      "source": "/manifest.json",
+      "destination": "/api/manifest/:shopSlug"
+    }
+  ]
+}

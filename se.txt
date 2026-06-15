@@ -1,0 +1,12 @@
+Supabase project बनवा	supabase.com	5 min
+2	8 SQL migrations run करा	Supabase SQL Editor	10 min
+3	Cloudinary account + upload preset	cloudinary.com	5 min
+4	Firebase project + Web app + Service account	console.firebase.google.com	15 min
+5	Resend account + domain verify	resend.com	10 min
+6	Upstash Redis database	upstash.com	5 min
+7	.env.local file बनवा — सर्व values fill करा	Local project	10 min
+8	npm run dev — local test करा	Terminal	5 min
+9	GitHub वर push करा	GitHub	5 min
+10	Vercel deploy + env vars add करा	vercel.com	10 min
+11	Domain connect करा	Domain provider	15 min
+12	Super Admin login करा → पहिली shop बनवा	yoursite.com/super-admin	5 min
