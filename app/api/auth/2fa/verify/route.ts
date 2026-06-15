@@ -1,8 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { headers } from 'next/headers'
 import { NextResponse } from 'next/server'
-import { authenticator } from 'otplib/preset/default'
+import * as OTPAuth from 'otpauth'
 import { z } from 'zod'
 
 const schema = z.object({ token: z.string().length(6) })
@@ -18,19 +17,26 @@ export async function POST(request: Request) {
 
   const admin = createAdminClient()
   const { data: row } = await admin
-    .from('user_2fa')
+    .from('two_factor_auth' as any)
     .select('secret')
     .eq('user_id', user.id)
     .single()
 
-  if (!row?.secret) return NextResponse.json({ error: '2FA not set up' }, { status: 400 })
+  if (!(row as any)?.secret) return NextResponse.json({ error: '2FA not set up' }, { status: 400 })
 
-  const isValid = authenticator.verify({ token: parsed.data.token, secret: row.secret })
-  if (!isValid) return NextResponse.json({ error: 'Invalid OTP code' }, { status: 400 })
+  const totp = new OTPAuth.TOTP({
+    secret: OTPAuth.Secret.fromBase32((row as any).secret),
+    algorithm: 'SHA1',
+    digits: 6,
+    period: 30,
+  })
+
+  const delta = totp.validate({ token: parsed.data.token, window: 1 })
+  if (delta === null) return NextResponse.json({ error: 'Invalid OTP code' }, { status: 400 })
 
   await admin
-    .from('user_2fa')
-    .update({ enabled: true })
+    .from('two_factor_auth' as any)
+    .update({ is_enabled: true })
     .eq('user_id', user.id)
 
   return NextResponse.json({ success: true })
