@@ -1,6 +1,10 @@
 import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+function getResend() {
+  if (!process.env.RESEND_API_KEY) return null
+  return new Resend(process.env.RESEND_API_KEY)
+}
+
 const FROM = process.env.RESEND_FROM_EMAIL ?? 'GanpatiBappa <noreply@ganpatibappa.in>'
 
 interface EmailOptions {
@@ -14,6 +18,8 @@ interface EmailOptions {
 /** Send a transactional email via Resend. */
 export async function sendEmail(options: EmailOptions): Promise<boolean> {
   try {
+    const resend = getResend()
+    if (!resend) return false
     const { data, error } = await resend.emails.send({
       from: FROM,
       to: Array.isArray(options.to) ? options.to : [options.to],
