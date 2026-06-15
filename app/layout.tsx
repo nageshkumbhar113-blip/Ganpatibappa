@@ -26,7 +26,7 @@ export const metadata: Metadata = {
   keywords: ['ganesh murti', 'ganpati', 'eco friendly ganesh', 'ganesh idol online'],
   authors: [{ name: 'GanpatiBappa' }],
   creator: 'GanpatiBappa',
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'),
+  metadataBase: (() => { try { return new URL((process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000').trim()) } catch { return new URL('http://localhost:3000') } })(),
   openGraph: {
     type: 'website',
     locale: 'mr_IN',
