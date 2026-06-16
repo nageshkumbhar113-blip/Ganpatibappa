@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="mr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Offline — GanpatiBappa</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #fff7ed;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .card {
+      background: white;
+      border-radius: 1.5rem;
+      padding: 2.5rem 2rem;
+      text-align: center;
+      max-width: 360px;
+      width: 100%;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    }
+    .emoji { font-size: 4rem; margin-bottom: 1rem; display: block; }
+    h1 { font-size: 1.4rem; font-weight: 700; color: #1a1a1a; margin-bottom: 0.5rem; }
+    p { font-size: 0.95rem; color: #6b7280; line-height: 1.6; margin-bottom: 1.5rem; }
+    .btn {
+      display: inline-block;
+      background: #f97316;
+      color: white;
+      font-weight: 600;
+      font-size: 0.9rem;
+      padding: 0.75rem 2rem;
+      border-radius: 9999px;
+      border: none;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.2s;
+    }
+    .btn:hover { background: #ea580c; }
+    .hint {
+      margin-top: 1.25rem;
+      font-size: 0.8rem;
+      color: #9ca3af;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <span class="emoji">🙏</span>
+    <h1>आपण Offline आहात</h1>
+    <p>
+      Internet connection नाही.<br />
+      कृपया network तपासा आणि पुन्हा प्रयत्न करा.
+    </p>
+    <button class="btn" onclick="window.location.reload()">पुन्हा प्रयत्न करा</button>
+    <p class="hint">GanpatiBappa — गणपती मूर्ती Online</p>
+  </div>
+</body>
+</html>

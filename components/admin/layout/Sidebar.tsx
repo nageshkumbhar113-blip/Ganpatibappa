@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Package, FolderOpen, ShoppingBag, FileText,
   Users, Image, Star, MessageCircle, Megaphone, BarChart3,
   Shield, Cloud, Bell, Settings, ChevronDown, ChevronRight,
-  Upload, Download, TrendingUp, Lock, Palette, CreditCard,
+  Upload, Download, TrendingUp, Lock, Palette, CreditCard, Globe, Wallet,
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -71,6 +71,8 @@ const NAV: NavGroup[] = [
       { href: '/admin/security/2fa', label: '2FA Setup', icon: Lock },
       { href: '/admin/settings', label: 'Settings', icon: Settings },
       { href: '/admin/settings/theme', label: 'Theme & Colors', icon: Palette },
+      { href: '/admin/settings/payment', label: 'Payment Settings', icon: Wallet },
+      { href: '/admin/settings/domain', label: 'Domain', icon: Globe },
       { href: '/admin/settings/subscription', label: 'Subscription', icon: CreditCard },
     ],
   },

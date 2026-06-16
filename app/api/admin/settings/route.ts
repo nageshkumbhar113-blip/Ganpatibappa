@@ -17,6 +17,11 @@ const SettingsSchema = z.object({
   logo_url: z.string().url().optional().nullable(),
   banner_url: z.string().url().optional().nullable(),
   theme_config: z.record(z.unknown()).optional(),
+  // Payment fields (stored in shops table)
+  upi_id: z.string().max(100).optional().nullable(),
+  upi_name: z.string().max(100).optional().nullable(),
+  qr_code_url: z.string().url().optional().nullable(),
+  account_holder_name: z.string().max(100).optional().nullable(),
 })
 
 export async function GET(_req: NextRequest) {
@@ -27,7 +32,7 @@ export async function GET(_req: NextRequest) {
     const [{ data: shop }, { data: settings }] = await Promise.all([
       supabase
         .from('shops')
-        .select('id, name, slug, whatsapp, address, logo_url, banner_url, theme_config, domain, status')
+        .select('id, name, slug, whatsapp, address, logo_url, banner_url, theme_config, domain, subdomain, status, upi_id, upi_name, qr_code_url, account_holder_name')
         .eq('id', user.shop_id!)
         .single(),
       supabase
@@ -57,6 +62,7 @@ export async function PUT(req: NextRequest) {
       about_text, contact_email, show_prices, allow_whatsapp_order,
       meta_title, meta_description,
       name, whatsapp, address, logo_url, banner_url, theme_config,
+      upi_id, upi_name, qr_code_url, account_holder_name,
     } = parsed.data
 
     const supabase = createClient()
@@ -70,7 +76,7 @@ export async function PUT(req: NextRequest) {
     if (meta_title !== undefined) settingsUpdate.meta_title = meta_title
     if (meta_description !== undefined) settingsUpdate.meta_description = meta_description
 
-    // Update shop
+    // Update shop (including payment fields)
     const shopUpdate: Record<string, unknown> = {}
     if (name) shopUpdate.name = name
     if (whatsapp) shopUpdate.whatsapp = whatsapp
@@ -78,6 +84,10 @@ export async function PUT(req: NextRequest) {
     if (logo_url !== undefined) shopUpdate.logo_url = logo_url
     if (banner_url !== undefined) shopUpdate.banner_url = banner_url
     if (theme_config) shopUpdate.theme_config = theme_config
+    if (upi_id !== undefined) shopUpdate.upi_id = upi_id
+    if (upi_name !== undefined) shopUpdate.upi_name = upi_name
+    if (qr_code_url !== undefined) shopUpdate.qr_code_url = qr_code_url
+    if (account_holder_name !== undefined) shopUpdate.account_holder_name = account_holder_name
 
     await Promise.all([
       Object.keys(settingsUpdate).length > 0
