@@ -6,9 +6,10 @@ import { z } from 'zod'
 
 const UpdateShopSchema = z.object({
   name: z.string().min(1).max(100).optional(),
+  slug: z.string().min(2).max(50).regex(/^[a-z0-9-]+$/).optional(),
   whatsapp: z.string().max(20).optional(),
   address: z.string().max(300).optional(),
-  status: z.enum(['active', 'suspended', 'deleted']).optional(),
+  status: z.enum(['active', 'suspended', 'pending', 'deleted']).optional(),
   domain: z.string().max(253).optional().nullable(),
 })
 

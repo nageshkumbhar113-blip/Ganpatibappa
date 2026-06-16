@@ -13,7 +13,7 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, startTransition] = useTransition()
-  const [form, setForm] = useState({ full_name: '', phone: '' })
+  const [form, setForm] = useState({ name: '', phone: '' })
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -25,13 +25,13 @@ export default function ProfilePage() {
 
       supabase
         .from('users')
-        .select('full_name, phone')
+        .select('name, phone')
         .eq('id', data.user.id)
         .single()
         .then(({ data: p }) => {
           if (p) {
             setProfile(p)
-            setForm({ full_name: p.full_name ?? '', phone: p.phone ?? '' })
+            setForm({ name: p.name ?? '', phone: p.phone ?? '' })
           }
         })
         .finally(() => setIsLoading(false))
@@ -43,7 +43,7 @@ export default function ProfilePage() {
     startTransition(async () => {
       const { error } = await supabase
         .from('users')
-        .update({ full_name: form.full_name, phone: form.phone })
+        .update({ name: form.name, phone: form.phone })
         .eq('id', user.id)
 
       if (error) {
@@ -86,8 +86,8 @@ export default function ProfilePage() {
           <div>
             <label className="text-xs font-medium text-gray-600 block mb-1">Full Name</label>
             <input
-              value={form.full_name}
-              onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))}
+              value={form.name}
+              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
               placeholder="Your name"
             />
