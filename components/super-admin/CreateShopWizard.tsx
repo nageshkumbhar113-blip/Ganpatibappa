@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { Loader2, CheckCircle, Store, User, CreditCard } from 'lucide-react'
+import { Loader2, CheckCircle, Store, User, CreditCard, Copy, ExternalLink, MessageCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -36,11 +36,22 @@ function slugify(text: string) {
     .replace(/^-|-$/g, '')
 }
 
+interface CreatedShop {
+  shopId: string
+  shopSlug: string
+  shopName: string
+  ownerEmail: string
+  ownerPassword: string
+  shopUrl: string
+  adminLoginUrl: string
+}
+
 export function CreateShopWizard({ plans }: CreateShopWizardProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [step, setStep] = useState<Step>('shop')
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [created, setCreated] = useState<CreatedShop | null>(null)
 
   const [shopData, setShopData] = useState({
     name: '',
@@ -109,13 +120,128 @@ export function CreateShopWizard({ plans }: CreateShopWizardProps) {
 
       if (res.ok) {
         const { shopId } = await res.json()
-        toast.success(`Shop "${shopData.name}" created successfully!`)
-        router.push(`/super-admin/shops/${shopId}`)
+        const base = window.location.origin
+        setCreated({
+          shopId,
+          shopSlug: shopData.slug,
+          shopName: shopData.name,
+          ownerEmail: ownerData.email,
+          ownerPassword: ownerData.password,
+          shopUrl: `${base}/shop/${shopData.slug}`,
+          adminLoginUrl: `${base}/login`,
+        })
       } else {
         const data = await res.json().catch(() => ({}))
         toast.error(data.error ?? 'Failed to create shop. Please try again.')
       }
     })
+  }
+
+  // ── Success Screen ───────────────────────────────────────────
+  if (created) {
+    const waText = encodeURIComponent(
+      `🙏 *${created.shopName}* — आपली shop तयार झाली!\n\n` +
+      `🌐 *Shop URL:*\n${created.shopUrl}\n\n` +
+      `🔐 *Admin Login:*\n${created.adminLoginUrl}\n\n` +
+      `📧 Email: ${created.ownerEmail}\n` +
+      `🔑 Password: ${created.ownerPassword}\n\n` +
+      `वरील link वरून आपली shop open करा आणि login करून products add करा.`
+    )
+
+    function copy(text: string, label: string) {
+      navigator.clipboard.writeText(text)
+      toast.success(`${label} copied!`)
+    }
+
+    return (
+      <div className="space-y-5">
+        {/* Success header */}
+        <div className="text-center py-4">
+          <div className="h-16 w-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-3">
+            <CheckCircle className="h-8 w-8 text-green-600" />
+          </div>
+          <h2 className="text-xl font-bold text-gray-900">Shop Created! 🎉</h2>
+          <p className="text-sm text-gray-500 mt-1">
+            <strong>{created.shopName}</strong> यशस्वीरित्या तयार झाली
+          </p>
+        </div>
+
+        {/* Shop URL */}
+        <div className="rounded-xl border border-blue-100 bg-blue-50 p-4 space-y-2">
+          <p className="text-xs font-bold text-blue-700 uppercase tracking-wide">🌐 Shop URL (Customers साठी)</p>
+          <div className="flex items-center gap-2">
+            <code className="flex-1 text-xs font-mono text-blue-900 bg-white rounded-lg px-3 py-2 border border-blue-100 break-all">
+              {created.shopUrl}
+            </code>
+            <button onClick={() => copy(created.shopUrl, 'Shop URL')} className="shrink-0 p-2 text-blue-500 hover:text-blue-700">
+              <Copy className="h-4 w-4" />
+            </button>
+            <a href={created.shopUrl} target="_blank" rel="noopener noreferrer" className="shrink-0 p-2 text-blue-500 hover:text-blue-700">
+              <ExternalLink className="h-4 w-4" />
+            </a>
+          </div>
+          <p className="text-xs text-blue-600">हे link customers ला share करा — यावरून ते products browse व order करू शकतात</p>
+        </div>
+
+        {/* Admin Login */}
+        <div className="rounded-xl border border-orange-100 bg-orange-50 p-4 space-y-3">
+          <p className="text-xs font-bold text-orange-700 uppercase tracking-wide">🔐 Admin Login (Shop Owner साठी)</p>
+          <div className="flex items-center gap-2">
+            <code className="flex-1 text-xs font-mono text-orange-900 bg-white rounded-lg px-3 py-2 border border-orange-100 break-all">
+              {created.adminLoginUrl}
+            </code>
+            <button onClick={() => copy(created.adminLoginUrl, 'Login URL')} className="shrink-0 p-2 text-orange-500 hover:text-orange-700">
+              <Copy className="h-4 w-4" />
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="bg-white rounded-lg px-3 py-2 border border-orange-100">
+              <p className="text-[10px] text-gray-400 mb-0.5">Email</p>
+              <div className="flex items-center justify-between gap-1">
+                <p className="text-xs font-mono font-semibold text-gray-800 truncate">{created.ownerEmail}</p>
+                <button onClick={() => copy(created.ownerEmail, 'Email')} className="shrink-0 text-gray-400 hover:text-gray-600"><Copy className="h-3 w-3" /></button>
+              </div>
+            </div>
+            <div className="bg-white rounded-lg px-3 py-2 border border-orange-100">
+              <p className="text-[10px] text-gray-400 mb-0.5">Password</p>
+              <div className="flex items-center justify-between gap-1">
+                <p className="text-xs font-mono font-semibold text-gray-800">{created.ownerPassword}</p>
+                <button onClick={() => copy(created.ownerPassword, 'Password')} className="shrink-0 text-gray-400 hover:text-gray-600"><Copy className="h-3 w-3" /></button>
+              </div>
+            </div>
+          </div>
+          <p className="text-xs text-orange-600">Shop owner या credentials ने login करून admin panel access करतील</p>
+        </div>
+
+        {/* WhatsApp Share */}
+        <a
+          href={`https://wa.me/?text=${waText}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-2 w-full rounded-xl border-2 border-green-500 py-3 text-sm font-semibold text-green-600 hover:bg-green-50 transition-colors"
+        >
+          <MessageCircle className="h-4 w-4" />
+          WhatsApp वर Shop Owner ला पाठवा
+        </a>
+
+        {/* Actions */}
+        <div className="flex gap-3 pt-2">
+          <Button
+            variant="outline"
+            className="flex-1"
+            onClick={() => router.push(`/super-admin/shops/${created.shopId}`)}
+          >
+            Shop Details पाहा
+          </Button>
+          <Button
+            className="flex-1 bg-orange-500 hover:bg-orange-600"
+            onClick={() => router.push('/super-admin/shops/create')}
+          >
+            नवीन Shop तयार करा
+          </Button>
+        </div>
+      </div>
+    )
   }
 
   return (

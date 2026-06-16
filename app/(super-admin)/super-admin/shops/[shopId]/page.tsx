@@ -10,6 +10,7 @@ import {
   ChevronLeft, Edit, Copy, ArrowRightLeft, HardDrive,
   Phone, MapPin, Globe, Calendar, User
 } from 'lucide-react'
+import { ShopLinksCard } from '@/components/super-admin/ShopLinksCard'
 
 async function getShopDetail(shopId: string) {
   const supabase = createAdminClient()
@@ -155,6 +156,21 @@ export default async function ShopDetailPage({
             >
               Manage Subscription
             </Link>
+          </CardContent>
+        </Card>
+
+        {/* Shop Links */}
+        <Card className="border-0 shadow-sm lg:col-span-3">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Shop Links</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ShopLinksCard
+              shopName={shop.name}
+              shopSlug={shop.slug}
+              shopUrl={`https://ganpatibappa-app.vercel.app/shop/${shop.slug}`}
+              adminLoginUrl="https://ganpatibappa-app.vercel.app/login"
+            />
           </CardContent>
         </Card>
 
