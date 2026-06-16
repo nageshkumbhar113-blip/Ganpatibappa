@@ -1,12 +1,17 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import * as OTPAuth from 'otpauth'
 import { z } from 'zod'
+import { rateLimit, getIP, rateLimitResponse } from '@/lib/rate-limit'
 
 const schema = z.object({ token: z.string().length(6) })
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const ip = getIP(request)
+  const rl = await rateLimit(`2fa:${ip}`, { limit: 5, windowSecs: 60 })
+  if (!rl.success) return rateLimitResponse(rl.reset)
+
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

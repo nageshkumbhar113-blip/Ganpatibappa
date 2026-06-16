@@ -1,8 +1,9 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { headers } from 'next/headers'
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { rateLimit, getIP, rateLimitResponse } from '@/lib/rate-limit'
 
 const InquirySchema = z.object({
   name: z.string().min(1).max(100),
@@ -12,7 +13,11 @@ const InquirySchema = z.object({
   message: z.string().min(1).max(1000),
 })
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const ip = getIP(request)
+  const rl = await rateLimit(`inquiry:${ip}`, { limit: 10, windowSecs: 60 })
+  if (!rl.success) return rateLimitResponse(rl.reset)
+
   const shopId = headers().get('x-shop-id')
   if (!shopId) return NextResponse.json({ error: 'Shop not found' }, { status: 404 })
 

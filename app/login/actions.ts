@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { headers } from 'next/headers'
 import { z } from 'zod'
+import { rateLimit } from '@/lib/rate-limit'
 
 const LoginSchema = z.object({
   email: z.string().email('Valid email required'),
@@ -33,6 +34,12 @@ export async function loginAction(
   }
 
   const { email, password, redirectTo } = parsed.data
+
+  // Rate limit: 5 login attempts per minute per email
+  const rl = await rateLimit(`login:${email}`, { limit: 5, windowSecs: 60 })
+  if (!rl.success) {
+    return { error: 'Too many login attempts. Please wait a minute and try again.' }
+  }
 
   const supabase = createClient()
 

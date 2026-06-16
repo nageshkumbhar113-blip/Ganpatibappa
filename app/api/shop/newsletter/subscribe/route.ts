@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { z } from 'zod'
+import { rateLimit, getIP, rateLimitResponse } from '@/lib/rate-limit'
 
 const SubscribeSchema = z.object({
   email: z.string().email(),
@@ -8,6 +9,10 @@ const SubscribeSchema = z.object({
 })
 
 export async function POST(req: NextRequest) {
+  const ip = getIP(req)
+  const rl = await rateLimit(`newsletter:${ip}`, { limit: 3, windowSecs: 60 })
+  if (!rl.success) return rateLimitResponse(rl.reset)
+
   try {
     const shopId = req.headers.get('x-shop-id')
     if (!shopId) return NextResponse.json({ error: 'Shop not found' }, { status: 404 })
