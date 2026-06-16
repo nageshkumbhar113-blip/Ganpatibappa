@@ -168,8 +168,6 @@ export default async function ShopDetailPage({
             <ShopLinksCard
               shopName={shop.name}
               shopSlug={shop.slug}
-              shopUrl={`https://ganpatibappa-app.vercel.app/shop/${shop.slug}`}
-              adminLoginUrl="https://ganpatibappa-app.vercel.app/login"
             />
           </CardContent>
         </Card>

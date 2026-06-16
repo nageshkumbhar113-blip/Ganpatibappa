@@ -6,11 +6,12 @@ import { toast } from 'sonner'
 interface Props {
   shopName: string
   shopSlug: string
-  shopUrl: string
-  adminLoginUrl: string
 }
 
-export function ShopLinksCard({ shopName, shopSlug, shopUrl, adminLoginUrl }: Props) {
+export function ShopLinksCard({ shopName, shopSlug }: Props) {
+  const origin = typeof window !== 'undefined' ? window.location.origin : ''
+  const shopUrl = `${origin}/shop/${shopSlug}`
+  const adminLoginUrl = `${origin}/login`
   function copy(text: string, label: string) {
     navigator.clipboard.writeText(text)
     toast.success(`${label} copied!`)
