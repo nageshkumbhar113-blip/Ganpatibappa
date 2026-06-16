@@ -73,6 +73,54 @@ export async function middleware(request: NextRequest) {
   // Build a lightweight session-like object so the rest of the middleware can stay unchanged
   const session = authUser ? { user: authUser } : null
 
+  // ── PATH-BASED SHOP ROUTES: /shop/[shopSlug]/* ──────────────
+  // Handles free-tier path routing without needing a custom domain
+  if (isPlatformDomain(hostname) && pathname.startsWith('/shop/')) {
+    const shopSlug = pathname.split('/')[2]
+    if (shopSlug) {
+      const { data: shop } = await supabase
+        .from('shops')
+        .select('id, slug, status')
+        .eq('slug', shopSlug)
+        .single()
+
+      if (!shop || shop.status === 'deleted') {
+        return shopNotFound(`Shop "${shopSlug}" not found`)
+      }
+      if (shop.status === 'suspended') return shopSuspended(shop.slug)
+
+      const reqHeaders = new Headers(request.headers)
+      reqHeaders.set('x-shop-id', shop.id)
+      reqHeaders.set('x-shop-slug', shop.slug)
+      reqHeaders.set('x-hostname', hostname)
+      if (session) reqHeaders.set('x-user-id', session.user.id)
+
+      const res = NextResponse.next({ request: { headers: reqHeaders } })
+      response.cookies.getAll().forEach(({ name, value }) => res.cookies.set(name, value))
+      return res
+    }
+  }
+
+  // ── API SHOP ROUTES: resolve x-shop-slug header ──────────────
+  // Client components send x-shop-slug header; middleware resolves to x-shop-id
+  if (isPlatformDomain(hostname) && pathname.startsWith('/api/shop/')) {
+    const slugFromHeader = request.headers.get('x-shop-slug')
+    if (slugFromHeader) {
+      const { data: shop } = await supabase
+        .from('shops')
+        .select('id')
+        .eq('slug', slugFromHeader)
+        .single()
+
+      if (shop) {
+        const reqHeaders = new Headers(request.headers)
+        reqHeaders.set('x-shop-id', shop.id)
+        return NextResponse.next({ request: { headers: reqHeaders } })
+      }
+    }
+    return response
+  }
+
   // ── PLATFORM DOMAIN ROUTES ───────────────────────────────────
   if (isPlatformDomain(hostname)) {
     // ── Super Admin ──────────────────────────────────────────
