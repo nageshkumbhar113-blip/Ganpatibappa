@@ -78,10 +78,12 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Create Supabase Auth user
+    // Pass role in raw_user_meta_data so the on_auth_user_created trigger sets it correctly
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       email: owner.email,
       password: owner.password,
       email_confirm: true,
+      user_metadata: { role: 'admin', name: owner.name },
     })
 
     if (authError || !authData.user) {
@@ -111,8 +113,8 @@ export async function POST(req: NextRequest) {
       throw shopError
     }
 
-    // 4. Create user profile record
-    await supabase.from('users').insert({
+    // 4. Upsert user profile (trigger may have already inserted a row; update with full data)
+    await supabase.from('users').upsert({
       id: authData.user.id,
       email: owner.email,
       name: owner.name,
@@ -120,7 +122,7 @@ export async function POST(req: NextRequest) {
       role: 'admin',
       shop_id: shopRecord.id,
       is_active: true,
-    })
+    }, { onConflict: 'id' })
 
     // 5. Get plan details for expiry calculation
     const { data: plan } = await supabase
