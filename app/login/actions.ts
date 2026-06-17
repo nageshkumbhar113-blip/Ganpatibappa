@@ -71,28 +71,31 @@ export async function loginAction(
     return { error: 'Your account has been deactivated. Please contact support.' }
   }
 
-  // Record login history
-  const ip =
-    headers().get('x-real-ip') ??
-    headers().get('x-forwarded-for')?.split(',')[0].trim() ??
-    '0.0.0.0'
+  // Record login history (non-critical — don't block login if table missing)
+  try {
+    const ip =
+      headers().get('x-real-ip') ??
+      headers().get('x-forwarded-for')?.split(',')[0].trim() ??
+      '0.0.0.0'
+    await adminSupabase.from('login_history').insert({
+      user_id: user.id,
+      shop_id: user.shop_id,
+      ip_address: ip,
+      user_agent: headers().get('user-agent'),
+      status: 'success',
+    })
+  } catch { /* ignore */ }
 
-  await adminSupabase.from('login_history').insert({
-    user_id: user.id,
-    shop_id: user.shop_id,
-    ip_address: ip,
-    user_agent: headers().get('user-agent'),
-    status: 'success',
-  })
-
-  // Update FCM token if provided
-  const fcmToken = formData.get('fcmToken') as string | null
-  if (fcmToken) {
-    await adminSupabase
-      .from('users')
-      .update({ fcm_token: fcmToken })
-      .eq('id', user.id)
-  }
+  // Update FCM token if provided (non-critical)
+  try {
+    const fcmToken = formData.get('fcmToken') as string | null
+    if (fcmToken) {
+      await adminSupabase
+        .from('users')
+        .update({ fcm_token: fcmToken })
+        .eq('id', user.id)
+    }
+  } catch { /* ignore */ }
 
   // Redirect based on role
   if (user.role === 'super_admin') {
