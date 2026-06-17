@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useCallback } from 'react'
+import { createContext, useContext, useCallback, useEffect } from 'react'
 
 interface ShopContextValue {
   shopSlug: string
@@ -22,6 +22,10 @@ export function ShopProvider({
   children: React.ReactNode
 }) {
   const basePath = `/shop/${shopSlug}`
+
+  useEffect(() => {
+    if (shopSlug) localStorage.setItem('ganpati_shop_slug', shopSlug)
+  }, [shopSlug])
 
   const apiFetch = useCallback(
     (url: string, options?: RequestInit) =>
