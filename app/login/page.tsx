@@ -1,10 +1,12 @@
 import { Suspense } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { LoginForm } from './_components/LoginForm'
+import { ShopVisitBox } from './_components/ShopVisitBox'
 
 interface LoginPageProps {
   searchParams: {
     redirect?: string
+    redirectTo?: string
     error?: string
   }
 }
@@ -20,9 +22,11 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
     ? ERROR_MESSAGES[searchParams.error] ?? 'An error occurred. Please try again.'
     : undefined
 
+  const redirectTo = searchParams.redirectTo ?? searchParams.redirect
+
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md space-y-6">
+      <div className="w-full max-w-md space-y-5">
 
         {/* Branding */}
         <div className="text-center">
@@ -46,12 +50,15 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
           <CardContent>
             <Suspense>
               <LoginForm
-                redirectTo={searchParams.redirect}
+                redirectTo={redirectTo}
                 error={errorMessage}
               />
             </Suspense>
           </CardContent>
         </Card>
+
+        {/* Visit Shop Box */}
+        <ShopVisitBox />
 
         <p className="text-center text-xs text-muted-foreground">
           © {new Date().getFullYear()} GanpatiBappa. All rights reserved.

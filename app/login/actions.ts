@@ -112,6 +112,29 @@ export async function loginAction(
 
 export async function logoutAction(): Promise<void> {
   const supabase = createClient()
+  const adminSupabase = createAdminClient()
+
+  // Get shop slug before signing out so we can redirect there
+  let shopSlug: string | null = null
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      const { data: profile } = await adminSupabase
+        .from('users')
+        .select('shop_id')
+        .eq('id', user.id)
+        .single()
+      if (profile?.shop_id) {
+        const { data: shop } = await adminSupabase
+          .from('shops')
+          .select('slug')
+          .eq('id', profile.shop_id)
+          .single()
+        shopSlug = shop?.slug ?? null
+      }
+    }
+  } catch { /* ignore */ }
+
   await supabase.auth.signOut()
-  redirect('/login')
+  redirect(shopSlug ? `/shop/${shopSlug}` : '/login')
 }
