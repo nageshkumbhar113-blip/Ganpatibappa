@@ -31,9 +31,10 @@ interface LoginFormProps {
 }
 
 export function LoginForm({ redirectTo, error: initialError }: LoginFormProps) {
-  const [state, formAction] = useFormState<LoginState, FormData>(loginAction, {
+  const [rawState, formAction] = useFormState<LoginState, FormData>(loginAction, {
     error: initialError,
   })
+  const state = rawState ?? {}
   const [showPassword, setShowPassword] = useState(false)
   const emailRef = useRef<HTMLInputElement>(null)
 
