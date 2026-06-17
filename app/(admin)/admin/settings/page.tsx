@@ -70,17 +70,16 @@ export default function SettingsPage() {
 
   async function uploadImage(file: File, field: 'logo_url' | 'banner_url') {
     setIsUploading(true)
-    const fd = new FormData()
-    fd.append('file', file)
-    fd.append('folder', field === 'logo_url' ? 'logos' : 'banners')
-    const res = await fetch('/api/admin/upload', { method: 'POST', body: fd })
-    setIsUploading(false)
-    if (res.ok) {
-      const d = await res.json()
-      setShop((s) => ({ ...s, [field]: d.url }))
+    try {
+      const { uploadImageDirect } = await import('@/lib/cloudinary/client-upload')
+      const folder = field === 'logo_url' ? 'logos' : 'banners'
+      const { url } = await uploadImageDirect(file, folder)
+      setShop((s) => ({ ...s, [field]: url }))
       toast.success('Image uploaded')
-    } else {
-      toast.error('Upload failed')
+    } catch (err: any) {
+      toast.error(err?.message ?? 'Upload failed')
+    } finally {
+      setIsUploading(false)
     }
   }
 

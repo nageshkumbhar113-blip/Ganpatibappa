@@ -32,17 +32,17 @@ export default function GalleryPage() {
     if (!files || files.length === 0) return
     setIsUploading(true)
 
+    const { uploadImageDirect } = await import('@/lib/cloudinary/client-upload')
     for (const file of Array.from(files)) {
-      const fd = new FormData()
-      fd.append('file', file)
-      fd.append('folder', 'gallery')
-
-      const uploadRes = await fetch('/api/admin/upload', { method: 'POST', body: fd })
-      if (!uploadRes.ok) {
-        toast.error(`Failed to upload ${file.name}`)
+      let url: string, publicId: string
+      try {
+        const result = await uploadImageDirect(file, 'gallery')
+        url = result.url
+        publicId = result.publicId
+      } catch (err: any) {
+        toast.error(`${file.name}: ${err?.message ?? 'Upload failed'}`)
         continue
       }
-      const { url, publicId } = await uploadRes.json()
 
       const saveRes = await fetch('/api/admin/gallery', {
         method: 'POST',

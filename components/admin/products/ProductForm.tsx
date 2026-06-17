@@ -99,18 +99,13 @@ export function ProductForm({ categories, initialData, mode }: ProductFormProps)
     if (!file) return
 
     setIsUploading(true)
-    const fd = new FormData()
-    fd.append('file', file)
-    fd.append('folder', 'products')
-
     try {
-      const res = await fetch('/api/admin/upload', { method: 'POST', body: fd })
-      if (!res.ok) throw new Error('Upload failed')
-      const { url } = await res.json()
+      const { uploadImageDirect } = await import('@/lib/cloudinary/client-upload')
+      const { url } = await uploadImageDirect(file, 'products')
       handleChange('images', [...form.images, url])
       toast.success('Image uploaded')
-    } catch {
-      toast.error('Failed to upload image')
+    } catch (err: any) {
+      toast.error(err?.message ?? 'Failed to upload image')
     } finally {
       setIsUploading(false)
       e.target.value = ''

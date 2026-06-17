@@ -49,17 +49,12 @@ export default function PaymentSettingsPage() {
     if (!file) return
     setIsUploading(true)
     try {
-      const fd = new FormData()
-      fd.append('file', file)
-      fd.append('folder', 'logos')
-      const res = await fetch('/api/admin/upload', { method: 'POST', body: fd })
-      const d = await res.json()
-      if (res.ok) {
-        setData((p) => ({ ...p, qr_code_url: d.url }))
-        toast.success('QR Code uploaded')
-      } else {
-        toast.error(d.error ?? 'Upload failed')
-      }
+      const { uploadImageDirect } = await import('@/lib/cloudinary/client-upload')
+      const { url } = await uploadImageDirect(file, 'logos')
+      setData((p) => ({ ...p, qr_code_url: url }))
+      toast.success('QR Code uploaded')
+    } catch (err: any) {
+      toast.error(err?.message ?? 'Upload failed')
     } finally {
       setIsUploading(false)
     }
