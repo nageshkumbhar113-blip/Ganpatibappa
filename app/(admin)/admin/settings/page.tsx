@@ -13,6 +13,7 @@ export default function SettingsPage() {
     name: '',
     whatsapp: '',
     address: '',
+    maps_url: '',
     logo_url: '',
     banner_url: '',
   })
@@ -21,6 +22,7 @@ export default function SettingsPage() {
     meta_title: '',
     meta_description: '',
     about_text: '',
+    youtube_url: '',
     show_prices: true,
     allow_whatsapp_order: true,
     show_stock: true,
@@ -42,6 +44,7 @@ export default function SettingsPage() {
             name: s.name ?? '',
             whatsapp: s.whatsapp ?? '',
             address: s.address ?? '',
+            maps_url: s.maps_url ?? '',
             logo_url: s.logo_url ?? '',
             banner_url: s.banner_url ?? '',
           })
@@ -52,6 +55,7 @@ export default function SettingsPage() {
             meta_title: st.meta_title ?? '',
             meta_description: st.meta_description ?? '',
             about_text: st.about_text ?? '',
+            youtube_url: st.youtube_url ?? '',
             show_prices: st.show_prices !== false,
             allow_whatsapp_order: st.allow_whatsapp_order !== false,
             show_stock: st.show_stock !== false,
@@ -171,7 +175,25 @@ export default function SettingsPage() {
             value={shop.address}
             onChange={(e) => setShop((s) => ({ ...s, address: e.target.value }))}
             className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 resize-none"
+            placeholder="दुकानाचा पत्ता टाका"
           />
+        </div>
+
+        <div>
+          <label className="text-xs font-medium text-gray-600 block mb-1">
+            Google Maps Location URL
+          </label>
+          <input
+            type="url"
+            value={shop.maps_url}
+            onChange={(e) => setShop((s) => ({ ...s, maps_url: e.target.value }))}
+            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+            placeholder="https://maps.app.goo.gl/..."
+          />
+          <p className="mt-1 text-[11px] text-gray-400">
+            Google Maps मध्ये दुकान शोधा → Share → Copy Link → इथे paste करा.
+            Customers shop page वरून directly navigate करू शकतील.
+          </p>
         </div>
 
         {/* Logo */}
@@ -249,6 +271,17 @@ export default function SettingsPage() {
             className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 resize-none"
             placeholder="Tell customers about your shop…"
           />
+        </div>
+        <div>
+          <label className="text-xs font-medium text-gray-600 block mb-1">YouTube Video URL</label>
+          <input
+            type="url"
+            value={settings.youtube_url}
+            onChange={(e) => setSettings((s) => ({ ...s, youtube_url: e.target.value }))}
+            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+            placeholder="https://www.youtube.com/watch?v=..."
+          />
+          <p className="mt-1 text-[11px] text-gray-400">हे video shop page वर customers ला दिसेल. YouTube वरून Share → Copy link.</p>
         </div>
         <div>
           <label className="text-xs font-medium text-gray-600 block mb-1">Meta Title</label>

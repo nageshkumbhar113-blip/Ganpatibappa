@@ -107,8 +107,7 @@ export default function CheckoutPage() {
               <input required={required} type={type} value={(form as any)[field]} onChange={e => set(field, e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400" placeholder={placeholder} />
             </div>
           ))}
-          <div><label className="text-xs font-medium text-gray-600 block mb-1">Delivery Address</label><textarea rows={2} value={form.customer_address} onChange={e => set('customer_address', e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 resize-none" placeholder="Street, City, Pincode…" /></div>
-          <div><label className="text-xs font-medium text-gray-600 block mb-1">Pickup / Delivery Date</label><input type="date" value={form.pickup_date} onChange={e => set('pickup_date', e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400" /></div>
+          <div><label className="text-xs font-medium text-gray-600 block mb-1">Pickup Date</label><input type="date" value={form.pickup_date} onChange={e => set('pickup_date', e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400" /></div>
           <div><label className="text-xs font-medium text-gray-600 block mb-1">Special Notes</label><textarea rows={2} value={form.notes} onChange={e => set('notes', e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 resize-none" placeholder="Any special requirements…" /></div>
         </div>
 

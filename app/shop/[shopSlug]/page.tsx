@@ -14,7 +14,7 @@ async function getShopCatalog(slug: string, categoryId?: string, q?: string, pag
 
   const { data: shop } = await supabase
     .from('shops')
-    .select(`id, name, logo_url, banner_url, whatsapp, shop_settings(about_text, show_prices, allow_whatsapp_order)`)
+    .select(`id, name, logo_url, banner_url, whatsapp, maps_url, address, shop_settings(about_text, show_prices, allow_whatsapp_order, youtube_url)`)
     .eq('slug', slug)
     .eq('status', 'active')
     .single()
@@ -36,18 +36,29 @@ async function getShopCatalog(slug: string, categoryId?: string, q?: string, pag
   if (categoryId) query = query.eq('category_id', categoryId)
   if (q) query = query.ilike('name', `%${q}%`)
 
-  const [{ data: products, count }, { data: categories }] = await Promise.all([
+  const [{ data: products, count }, { data: categories }, { data: gallery }] = await Promise.all([
     query,
     supabase.from('categories').select('id, name, image_url').eq('shop_id', shop.id).eq('is_active', true).order('sort_order'),
+    supabase.from('gallery').select('id, image_url, caption').eq('shop_id', shop.id).order('sort_order').limit(20),
   ])
 
   return {
     shop,
     products: products ?? [],
     categories: categories ?? [],
+    gallery: gallery ?? [],
     total: count ?? 0,
     totalPages: Math.ceil((count ?? 0) / limit),
   }
+}
+
+function getYouTubeId(url: string): string | null {
+  try {
+    const u = new URL(url)
+    if (u.hostname.includes('youtu.be')) return u.pathname.slice(1).split('?')[0]
+    if (u.hostname.includes('youtube.com')) return u.searchParams.get('v')
+  } catch {}
+  return null
 }
 
 export default async function ShopHomePage({ params, searchParams }: Props) {
@@ -55,11 +66,13 @@ export default async function ShopHomePage({ params, searchParams }: Props) {
   const data = await getShopCatalog(params.shopSlug, searchParams.category_id, searchParams.q, page)
   if (!data) notFound()
 
-  const { shop, products, categories, total, totalPages } = data
+  const { shop, products, categories, gallery, total, totalPages } = data
   const settings = (shop.shop_settings as any)?.[0] ?? {}
   const showPrices = settings.show_prices !== false
   const base = `/shop/${params.shopSlug}`
   const wa = shop.whatsapp?.replace(/\D/g, '')
+  const mapsUrl = (shop as any).maps_url as string | null | undefined
+  const youtubeId = settings.youtube_url ? getYouTubeId(settings.youtube_url) : null
 
   return (
     <div className="min-h-screen bg-[#fafaf9]">
@@ -115,10 +128,50 @@ export default async function ShopHomePage({ params, searchParams }: Props) {
                   📞 WhatsApp Order
                 </a>
               )}
+              {mapsUrl && (
+                <a
+                  href={mapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded-full bg-blue-600 text-white font-bold px-6 py-2.5 text-sm shadow hover:bg-blue-700 transition-colors"
+                >
+                  📍 दुकान शोधा
+                </a>
+              )}
             </div>
           </div>
         </div>
       </div>
+
+      {/* ── GALLERY SCROLL ───────────────────────────────────── */}
+      {gallery.length > 0 && (
+        <div className="max-w-5xl mx-auto px-4 pt-6">
+          <h2 className="text-base font-bold text-gray-800 mb-3">📸 Gallery</h2>
+          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
+            {gallery.map((img: any) => (
+              <div key={img.id} className="shrink-0 w-40 h-40 rounded-xl overflow-hidden border border-gray-100 bg-orange-50 shadow-sm">
+                <img src={img.image_url} alt={img.caption ?? ''} className="h-full w-full object-cover" />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── YOUTUBE VIDEO ────────────────────────────────────── */}
+      {youtubeId && (
+        <div className="max-w-5xl mx-auto px-4 pt-4">
+          <h2 className="text-base font-bold text-gray-800 mb-3">🎬 Video</h2>
+          <div className="relative w-full rounded-2xl overflow-hidden shadow-md" style={{ paddingBottom: '56.25%' }}>
+            <iframe
+              src={`https://www.youtube.com/embed/${youtubeId}`}
+              title="Shop video"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              className="absolute inset-0 w-full h-full"
+            />
+          </div>
+        </div>
+      )}
 
       {/* ── CATALOG ──────────────────────────────────────────── */}
       <div id="catalog" className="max-w-5xl mx-auto px-4 py-8 space-y-6">
@@ -259,11 +312,24 @@ export default async function ShopHomePage({ params, searchParams }: Props) {
       </div>
 
       {/* ── FOOTER ───────────────────────────────────────────── */}
-      <footer className="border-t border-gray-100 bg-white mt-8 py-8 text-center space-y-1">
+      <footer className="border-t border-gray-100 bg-white mt-8 py-8 text-center space-y-1.5">
         <p className="text-sm font-semibold text-gray-700">🙏 {shop.name}</p>
         {shop.whatsapp && (
           <a href={`https://wa.me/${wa}`} className="text-xs text-green-600 hover:underline block">
             📞 WhatsApp: {shop.whatsapp}
+          </a>
+        )}
+        {(shop as any).address && (
+          <p className="text-xs text-gray-500">📍 {(shop as any).address}</p>
+        )}
+        {mapsUrl && (
+          <a
+            href={mapsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block text-xs text-blue-600 hover:underline font-medium"
+          >
+            🗺️ Google Maps वर दिशा पाहा
           </a>
         )}
         <p className="text-[11px] text-gray-400 pt-1">Powered by GanpatiBappa Platform</p>

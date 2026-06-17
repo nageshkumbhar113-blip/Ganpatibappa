@@ -10,6 +10,7 @@ const SettingsSchema = z.object({
   allow_whatsapp_order: z.boolean().optional(),
   meta_title: z.string().max(200).optional().nullable(),
   meta_description: z.string().max(500).optional().nullable(),
+  youtube_url: z.string().url().optional().nullable(),
   // Shop fields
   name: z.string().min(1).max(100).optional(),
   whatsapp: z.string().max(20).optional(),
@@ -17,6 +18,7 @@ const SettingsSchema = z.object({
   logo_url: z.string().url().optional().nullable(),
   banner_url: z.string().url().optional().nullable(),
   theme_config: z.record(z.unknown()).optional(),
+  maps_url: z.string().url().optional().nullable(),
   // Payment fields (stored in shops table)
   upi_id: z.string().max(100).optional().nullable(),
   upi_name: z.string().max(100).optional().nullable(),
@@ -32,7 +34,7 @@ export async function GET(_req: NextRequest) {
     const [{ data: shop }, { data: settings }] = await Promise.all([
       supabase
         .from('shops')
-        .select('id, name, slug, whatsapp, address, logo_url, banner_url, theme_config, domain, subdomain, status, upi_id, upi_name, qr_code_url, account_holder_name')
+        .select('id, name, slug, whatsapp, address, maps_url, logo_url, banner_url, theme_config, domain, subdomain, status, upi_id, upi_name, qr_code_url, account_holder_name')
         .eq('id', user.shop_id!)
         .single(),
       supabase
@@ -60,8 +62,8 @@ export async function PUT(req: NextRequest) {
 
     const {
       about_text, contact_email, show_prices, allow_whatsapp_order,
-      meta_title, meta_description,
-      name, whatsapp, address, logo_url, banner_url, theme_config,
+      meta_title, meta_description, youtube_url,
+      name, whatsapp, address, maps_url, logo_url, banner_url, theme_config,
       upi_id, upi_name, qr_code_url, account_holder_name,
     } = parsed.data
 
@@ -75,12 +77,14 @@ export async function PUT(req: NextRequest) {
     if (allow_whatsapp_order !== undefined) settingsUpdate.allow_whatsapp_order = allow_whatsapp_order
     if (meta_title !== undefined) settingsUpdate.meta_title = meta_title
     if (meta_description !== undefined) settingsUpdate.meta_description = meta_description
+    if (youtube_url !== undefined) settingsUpdate.youtube_url = youtube_url
 
     // Update shop (including payment fields)
     const shopUpdate: Record<string, unknown> = {}
     if (name) shopUpdate.name = name
     if (whatsapp) shopUpdate.whatsapp = whatsapp
     if (address !== undefined) shopUpdate.address = address
+    if (maps_url !== undefined) shopUpdate.maps_url = maps_url
     if (logo_url !== undefined) shopUpdate.logo_url = logo_url
     if (banner_url !== undefined) shopUpdate.banner_url = banner_url
     if (theme_config) shopUpdate.theme_config = theme_config

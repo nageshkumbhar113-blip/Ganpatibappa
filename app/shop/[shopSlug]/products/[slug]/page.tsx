@@ -25,7 +25,7 @@ export default function ProductDetailPage() {
   const [isWishlisted, setIsWishlisted] = useState(false)
   const [showBookForm, setShowBookForm] = useState(false)
   const [isSubmitting, startTransition] = useTransition()
-  const [bookForm, setBookForm] = useState({ customer_name: '', customer_phone: '', customer_address: '', pickup_date: '', notes: '' })
+  const [bookForm, setBookForm] = useState({ customer_name: '', customer_phone: '', pickup_date: '', notes: '' })
 
   useEffect(() => {
     async function load() {
@@ -76,7 +76,7 @@ export default function ProductDetailPage() {
       const res = await apiFetch('/api/shop/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items: [{ product_id: product.id, quantity }], ...bookForm, total_amount: (product.offer_price ?? product.price) * quantity }),
+        body: JSON.stringify({ items: [{ product_id: product.id, quantity }], customer_name: bookForm.customer_name, customer_phone: bookForm.customer_phone, pickup_date: bookForm.pickup_date || undefined, notes: bookForm.notes || undefined }),
       })
       if (res.ok) {
         const d = await res.json()
@@ -233,8 +233,7 @@ export default function ProductDetailPage() {
                   <input required={required} type={type} value={(bookForm as any)[field]} onChange={e => setBookForm(f => ({ ...f, [field]: e.target.value }))} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400" placeholder={placeholder} />
                 </div>
               ))}
-              <div><label className="text-xs font-medium text-gray-600 block mb-1">Address</label><textarea rows={2} value={bookForm.customer_address} onChange={e => setBookForm(f => ({ ...f, customer_address: e.target.value }))} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 resize-none" placeholder="Delivery address…" /></div>
-              <div><label className="text-xs font-medium text-gray-600 block mb-1">Pickup / Delivery Date</label><input type="date" value={bookForm.pickup_date} onChange={e => setBookForm(f => ({ ...f, pickup_date: e.target.value }))} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400" /></div>
+              <div><label className="text-xs font-medium text-gray-600 block mb-1">Pickup Date</label><input type="date" value={bookForm.pickup_date} onChange={e => setBookForm(f => ({ ...f, pickup_date: e.target.value }))} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400" /></div>
               <div><label className="text-xs font-medium text-gray-600 block mb-1">Special Notes</label><textarea rows={2} value={bookForm.notes} onChange={e => setBookForm(f => ({ ...f, notes: e.target.value }))} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 resize-none" placeholder="Any special requirements…" /></div>
               {showPrice && <div className="rounded-lg bg-orange-50 p-3 flex justify-between text-sm font-semibold"><span>Total ({quantity} item{quantity > 1 ? 's' : ''})</span><span>{formatCurrency((product.offer_price ?? product.price) * quantity)}</span></div>}
               <button type="submit" disabled={isSubmitting} className="w-full rounded-xl bg-orange-500 py-3 text-sm font-bold text-white hover:bg-orange-600 disabled:opacity-60 transition-colors flex items-center justify-center gap-2">
