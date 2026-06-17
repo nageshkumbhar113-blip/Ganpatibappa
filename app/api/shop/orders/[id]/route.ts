@@ -28,7 +28,7 @@ export async function GET(
   if (error || !order) return NextResponse.json({ error: 'Order not found' }, { status: 404 })
 
   // Only the order's owner can view it
-  if (order.user_id && order.user_id !== user.id) {
+  if (order.customer_id && order.customer_id !== user.id) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

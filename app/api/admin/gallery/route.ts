@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
 
     if (error) throw error
 
-    return NextResponse.json({ item: data }, { status: 201 })
+    return NextResponse.json({ image: data }, { status: 201 })
   } catch (error: any) {
     return NextResponse.json({ error: 'Failed to add gallery image' }, { status: 500 })
   }

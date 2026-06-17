@@ -9,7 +9,7 @@ export interface CartItem {
   price: number
   quantity: number
   image?: string
-  slug: string
+  slug?: string
 }
 
 interface CartState {
@@ -17,7 +17,7 @@ interface CartState {
   items: CartItem[]
   totalItems: number
   totalAmount: number
-  addItem: (shopId: string, item: Omit<CartItem, 'quantity'>) => void
+  addItem: (shopSlug: string, item: Omit<CartItem, 'quantity'> & { quantity?: number }) => void
   removeItem: (id: string) => void
   updateQuantity: (id: string, quantity: number) => void
   clearCart: () => void
@@ -38,14 +38,16 @@ export const useCart = create<CartState>()(
       totalItems: 0,
       totalAmount: 0,
 
-      addItem: (shopId, item) => {
+      addItem: (shopSlug, item) => {
         set((state) => {
-          const base = state.shopId && state.shopId !== shopId ? [] : state.items
+          const qty = item.quantity ?? 1
+          // Clear cart if switching to a different shop
+          const base = state.shopId && state.shopId !== shopSlug ? [] : state.items
           const existing = base.find((i) => i.id === item.id)
           const items = existing
-            ? base.map((i) => (i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i))
-            : [...base, { ...item, quantity: 1 }]
-          return { shopId, items, ...totals(items) }
+            ? base.map((i) => (i.id === item.id ? { ...i, quantity: i.quantity + qty } : i))
+            : [...base, { ...item, quantity: qty }]
+          return { shopId: shopSlug, items, ...totals(items) }
         })
       },
 
@@ -66,6 +68,6 @@ export const useCart = create<CartState>()(
 
       clearCart: () => set({ items: [], shopId: null, totalItems: 0, totalAmount: 0 }),
     }),
-    { name: 'ganpatibappa-cart', version: 2 }
+    { name: 'ganpatibappa-cart', version: 3 }
   )
 )

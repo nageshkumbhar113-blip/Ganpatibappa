@@ -28,8 +28,7 @@ export default function CheckoutPage() {
       if (paymentScreenshot) {
         const fd = new FormData()
         fd.append('file', paymentScreenshot)
-        fd.append('folder', 'payment_screenshots')
-        const upRes = await apiFetch('/api/admin/upload', { method: 'POST', body: fd })
+        const upRes = await apiFetch('/api/shop/payment/screenshot', { method: 'POST', body: fd })
         if (upRes.ok) { const d = await upRes.json(); screenshotUrl = d.url }
       }
 

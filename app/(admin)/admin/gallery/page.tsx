@@ -47,7 +47,7 @@ export default function GalleryPage() {
       const saveRes = await fetch('/api/admin/gallery', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url, public_id: publicId }),
+        body: JSON.stringify({ image_url: url, public_id: publicId }),
       })
       if (saveRes.ok) {
         const d = await saveRes.json()

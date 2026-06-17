@@ -15,7 +15,7 @@ const PlaceOrderSchema = z.object({
       quantity: z.number().int().positive(),
     })
   ).min(1),
-  total_amount: z.number().positive(),
+  total_amount: z.number().positive().optional(),
   advance_amount: z.number().min(0).optional().nullable(),
   payment_method: z.enum(['upi', 'qr', 'cod', 'partial', 'cash', 'bank_transfer']).optional(),
   payment_screenshot_url: z.string().url().optional().nullable(),
@@ -109,9 +109,11 @@ export async function POST(req: NextRequest) {
     const supabase = createClient()
     const { data: { user: authUser } } = await supabase.auth.getUser()
 
+    // Always compute total server-side — never trust client value
+    const serverTotal = orderItems.reduce((s, i) => s + i.subtotal, 0)
     const orderNumber = generateOrderNumber()
-    const advanceAmt = advance_amount ?? 0
-    const paymentStatus = advanceAmt >= total_amount ? 'paid' : advanceAmt > 0 ? 'partial' : 'pending'
+    const advanceAmt = Math.min(advance_amount ?? 0, serverTotal)
+    const paymentStatus = advanceAmt >= serverTotal ? 'paid' : advanceAmt > 0 ? 'partial' : 'pending'
 
     const { data: order, error: orderError } = await adminSupabase
       .from('orders')
@@ -121,8 +123,9 @@ export async function POST(req: NextRequest) {
         order_number: orderNumber,
         customer_name,
         customer_phone,
+        customer_email: customer_email ?? null,
         customer_address: customer_address ?? null,
-        total_amount,
+        total_amount: serverTotal,
         advance_amount: advanceAmt,
         status: 'pending',
         payment_method: payment_method ?? 'upi',

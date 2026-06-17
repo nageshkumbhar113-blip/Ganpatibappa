@@ -59,7 +59,14 @@ export default function ProductDetailPage() {
 
   function handleAddToCart() {
     if (!product) return
-    addItem({ id: product.id, name: product.name, price: product.offer_price ?? product.price, image: product.images?.[0], quantity })
+    addItem(params.shopSlug, {
+      id: product.id,
+      name: product.name,
+      price: product.offer_price ?? product.price,
+      image: product.images?.[0],
+      slug: product.slug,
+      quantity,
+    })
     toast.success('Added to cart')
   }
 

@@ -27,9 +27,9 @@ export default function SystemLogsPage() {
 
   useEffect(() => {
     setIsLoading(true)
-    const params = new URLSearchParams({ page: String(page), global: 'true' })
+    const params = new URLSearchParams({ page: String(page) })
     if (search) params.set('q', search)
-    fetch(`/api/admin/security/audit-logs?${params}`)
+    fetch(`/api/super-admin/audit-logs?${params}`)
       .then((r) => r.json())
       .then((d) => {
         if (d.error) toast.error(d.error)
