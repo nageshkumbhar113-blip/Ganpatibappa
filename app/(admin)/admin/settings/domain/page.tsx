@@ -125,7 +125,7 @@ export default function DomainPage() {
     return <div className="flex h-64 items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-orange-500" /></div>
   }
 
-  const subdomainUrl = shopSlug ? `https://${shopSlug}.${platformDomain}` : null
+  const pathUrl = shopSlug ? `${window.location.origin}/shop/${shopSlug}` : null
 
   return (
     <div className="p-6 max-w-3xl space-y-6">
@@ -134,27 +134,30 @@ export default function DomainPage() {
           <Globe className="h-5 w-5 text-orange-500" />
           Domain Management
         </h1>
-        <p className="text-sm text-gray-500 mt-1">आपल्या shop साठी subdomain किंवा custom domain set करा</p>
+        <p className="text-sm text-gray-500 mt-1">आपल्या shop साठी URL आणि custom domain manage करा</p>
       </div>
 
-      {/* Current Subdomain */}
-      {subdomainUrl && (
-        <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
-          <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide mb-1">Your Free Subdomain</p>
+      {/* ✅ FREE PATH URL — primary, always works */}
+      {pathUrl && (
+        <div className="bg-green-50 border border-green-200 rounded-xl p-4 space-y-2">
           <div className="flex items-center gap-2">
-            <code className="text-sm font-mono text-blue-900 bg-white px-2 py-1 rounded">{subdomainUrl}</code>
-            <button onClick={() => copyText(subdomainUrl)} className="text-blue-500 hover:text-blue-700">
+            <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
+            <p className="text-xs font-bold text-green-700 uppercase tracking-wide">तुमचा Shop URL — आत्ता काम करतो ✅</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <code className="flex-1 text-sm font-mono text-green-900 bg-white border border-green-200 px-3 py-2 rounded-lg break-all">{pathUrl}</code>
+            <button onClick={() => copyText(pathUrl)} className="shrink-0 text-green-600 hover:text-green-800 p-1">
               <Copy className="h-4 w-4" />
             </button>
-            <a href={subdomainUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700">
+            <a href={pathUrl} target="_blank" rel="noopener noreferrer" className="shrink-0 text-green-600 hover:text-green-800 p-1">
               <ExternalLink className="h-4 w-4" />
             </a>
           </div>
-          <p className="text-xs text-blue-600 mt-1">हे subdomain नेहमी active असते — कोणतीही verification नको</p>
+          <p className="text-xs text-green-600">हा URL कोणाला पण share करा — WhatsApp, Instagram, Facebook वर</p>
         </div>
       )}
 
-      {/* Add Custom Domain */}
+      {/* Custom Domain Section header */}
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
         <h2 className="text-sm font-bold text-gray-900 mb-4">Custom Domain जोडा</h2>
         <form onSubmit={addDomain} className="flex gap-2">
