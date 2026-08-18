@@ -2,6 +2,8 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { headers } from 'next/headers'
 import { notFound } from 'next/navigation'
 
+export const dynamic = 'force-dynamic'
+
 async function getGallery() {
   const shopId = headers().get('x-shop-id')
   if (!shopId) return null

@@ -3,6 +3,8 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { formatCurrency, calculateDiscount } from '@/lib/utils/format'
 
+export const dynamic = 'force-dynamic'
+
 interface Props {
   params: { shopSlug: string }
   searchParams: { category_id?: string; q?: string; page?: string }

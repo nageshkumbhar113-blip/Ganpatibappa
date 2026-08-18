@@ -3,6 +3,8 @@ import { headers } from 'next/headers'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 
+export const dynamic = 'force-dynamic'
+
 async function getAboutData() {
   const shopId = headers().get('x-shop-id')
   if (!shopId) return null

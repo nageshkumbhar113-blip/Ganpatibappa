@@ -4,6 +4,8 @@ import Link from 'next/link'
 import { ChevronLeft } from 'lucide-react'
 import { formatCurrency, calculateDiscount } from '@/lib/utils/format'
 
+export const dynamic = 'force-dynamic'
+
 interface Props { params: { shopSlug: string; id: string } }
 
 export default async function CategoryPage({ params }: Props) {

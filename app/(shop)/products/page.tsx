@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { formatCurrency, calculateDiscount } from '@/lib/utils/format'
 import { Search } from 'lucide-react'
 
+export const dynamic = 'force-dynamic'
+
 interface ProductsPageProps {
   searchParams: {
     category_id?: string

@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { formatCurrency, calculateDiscount } from '@/lib/utils/format'
 import { ChevronLeft } from 'lucide-react'
 
+export const dynamic = 'force-dynamic'
+
 interface CategoryPageProps {
   params: { id: string }
   searchParams: { page?: string }

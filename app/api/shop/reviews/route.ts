@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { z } from 'zod'
 
+export const dynamic = 'force-dynamic'
+
 const ReviewSchema = z.object({
   product_id: z.string().uuid(),
   rating: z.number().int().min(1).max(5),

@@ -4,6 +4,8 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { z } from 'zod'
 import { rateLimit, getIP, rateLimitResponse } from '@/lib/rate-limit'
 
+export const dynamic = 'force-dynamic'
+
 const PlaceOrderSchema = z.object({
   customer_name: z.string().min(1).max(100),
   customer_phone: z.string().min(7).max(20),

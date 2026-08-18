@@ -2,6 +2,8 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { headers } from 'next/headers'
 import { NextResponse } from 'next/server'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
   const shopId = headers().get('x-shop-id')
   if (!shopId) return NextResponse.json({ error: 'Shop not found' }, { status: 404 })
