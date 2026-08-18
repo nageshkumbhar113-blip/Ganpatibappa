@@ -38,11 +38,19 @@ async function getShopCatalog(slug: string, categoryId?: string, q?: string, pag
   if (categoryId) query = query.eq('category_id', categoryId)
   if (q) query = query.ilike('name', `%${q}%`)
 
-  const [{ data: products, count }, { data: categories }, { data: gallery }] = await Promise.all([
+  const [{ data: products, count, error: productsError }, { data: categories }, { data: gallery }] = await Promise.all([
     query,
     supabase.from('categories').select('id, name, image_url').eq('shop_id', shop.id).eq('is_active', true).order('sort_order'),
     supabase.from('gallery').select('id, image_url, caption').eq('shop_id', shop.id).order('sort_order').limit(20),
   ])
+
+  console.log('[DEBUG getShopCatalog]', {
+    slug,
+    shopId: shop.id,
+    productsCount: products?.length,
+    countField: count,
+    productsError,
+  })
 
   return {
     shop,
