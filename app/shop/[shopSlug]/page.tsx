@@ -44,22 +44,16 @@ async function getShopCatalog(slug: string, categoryId?: string, q?: string, pag
     supabase.from('gallery').select('id, image_url, caption').eq('shop_id', shop.id).order('sort_order').limit(20),
   ])
 
-  const simpleCheck = await supabase.from('products').select('id, shop_id, is_active').eq('shop_id', shop.id)
-  const noFilterCheck = await supabase.from('products').select('id, shop_id, is_active').limit(5)
+  const withActive = await supabase.from('products').select('id').eq('shop_id', shop.id).eq('is_active', true)
+  const withOrder = await supabase.from('products').select('id').eq('shop_id', shop.id).eq('is_active', true).order('is_featured', { ascending: false }).order('created_at', { ascending: false })
+  const withRange = await supabase.from('products').select('id').eq('shop_id', shop.id).eq('is_active', true).order('is_featured', { ascending: false }).order('created_at', { ascending: false }).range(0, 11)
+  const withCount = await supabase.from('products').select('id', { count: 'exact' }).eq('shop_id', shop.id).eq('is_active', true).order('is_featured', { ascending: false }).order('created_at', { ascending: false }).range(0, 11)
 
-  console.log('[DEBUG getShopCatalog]', {
-    slug,
-    shopId: shop.id,
-    productsCount: products?.length,
-    countField: count,
-    productsError,
-    simpleCheckData: simpleCheck.data,
-    simpleCheckError: simpleCheck.error,
-    noFilterCheckData: noFilterCheck.data,
-    noFilterCheckError: noFilterCheck.error,
-    supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
-    hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
-    serviceKeyPrefix: process.env.SUPABASE_SERVICE_ROLE_KEY?.slice(0, 12),
+  console.log('[DEBUG isolate]', {
+    withActive: { data: withActive.data, error: withActive.error },
+    withOrder: { data: withOrder.data, error: withOrder.error },
+    withRange: { data: withRange.data, error: withRange.error },
+    withCount: { data: withCount.data, count: withCount.count, error: withCount.error },
   })
 
   return {
