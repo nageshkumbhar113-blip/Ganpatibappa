@@ -44,17 +44,16 @@ async function getShopCatalog(slug: string, categoryId?: string, q?: string, pag
     supabase.from('gallery').select('id, image_url, caption').eq('shop_id', shop.id).order('sort_order').limit(20),
   ])
 
-  const withActive = await supabase.from('products').select('id').eq('shop_id', shop.id).eq('is_active', true)
-  const withOrder = await supabase.from('products').select('id').eq('shop_id', shop.id).eq('is_active', true).order('is_featured', { ascending: false }).order('created_at', { ascending: false })
-  const withRange = await supabase.from('products').select('id').eq('shop_id', shop.id).eq('is_active', true).order('is_featured', { ascending: false }).order('created_at', { ascending: false }).range(0, 11)
-  const withCount = await supabase.from('products').select('id', { count: 'exact' }).eq('shop_id', shop.id).eq('is_active', true).order('is_featured', { ascending: false }).order('created_at', { ascending: false }).range(0, 11)
+  const fullFields = 'id, name, slug, price, offer_price, images, height_cm, material, stock, is_featured'
+  const cols = fullFields.split(',').map(c => c.trim())
+  const results: Record<string, any> = {}
+  for (const col of cols) {
+    const r = await supabase.from('products').select(`id, ${col}`, { count: 'exact' }).eq('shop_id', shop.id).eq('is_active', true)
+    results[col] = { count: r.count, error: r.error?.message }
+  }
+  const fullSelect = await supabase.from('products').select(fullFields, { count: 'exact' }).eq('shop_id', shop.id).eq('is_active', true)
 
-  console.log('[DEBUG isolate]', {
-    withActive: { data: withActive.data, error: withActive.error },
-    withOrder: { data: withOrder.data, error: withOrder.error },
-    withRange: { data: withRange.data, error: withRange.error },
-    withCount: { data: withCount.data, count: withCount.count, error: withCount.error },
-  })
+  console.log('[DEBUG isolate2]', JSON.stringify({ perColumn: results, fullSelectCount: fullSelect.count, fullSelectError: fullSelect.error?.message }))
 
   return {
     shop,
