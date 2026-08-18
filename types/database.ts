@@ -5,7 +5,14 @@
 
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[]
 
-export type Database = {
+// Raw table/function/view definitions as authored. Postgrest's `GenericTable`
+// requires a `Relationships: GenericRelationship[]` field on every table — without
+// it, `Schema['Tables']` fails its structural constraint and every `.from(...)`
+// query silently degrades to `never`. Rather than repeat `Relationships: []` on
+// all 36 tables below, it's injected once via a mapped type in `Database` further
+// down (there are no FK relationships modeled here, so `[]` is correct for all of
+// them — a real `supabase gen types` run would fill these in per-table).
+type RawDatabase = {
   public: {
     Tables: {
       // ── SHOPS ──────────────────────────────────────────────
@@ -19,6 +26,7 @@ export type Database = {
           banner_url: string | null
           whatsapp: string | null
           address: string | null
+          maps_url: string | null
           status: 'active' | 'suspended' | 'deleted'
           domain: string | null
           subdomain: string | null
@@ -35,6 +43,7 @@ export type Database = {
           banner_url?: string | null
           whatsapp?: string | null
           address?: string | null
+          maps_url?: string | null
           status?: 'active' | 'suspended' | 'deleted'
           domain?: string | null
           subdomain?: string | null
@@ -56,6 +65,7 @@ export type Database = {
           allow_whatsapp_order: boolean
           meta_title: string | null
           meta_description: string | null
+          youtube_url: string | null
           created_at: string
           updated_at: string
         }
@@ -68,6 +78,7 @@ export type Database = {
           allow_whatsapp_order?: boolean
           meta_title?: string | null
           meta_description?: string | null
+          youtube_url?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -178,6 +189,7 @@ export type Database = {
           shop_id: string
           name: string
           slug: string
+          description: string | null
           image_url: string | null
           sort_order: number
           is_active: boolean
@@ -189,6 +201,7 @@ export type Database = {
           shop_id: string
           name: string
           slug: string
+          description?: string | null
           image_url?: string | null
           sort_order?: number
           is_active?: boolean
@@ -267,7 +280,7 @@ export type Database = {
           total_amount: number
           advance_amount: number
           status: 'pending' | 'confirmed' | 'in_production' | 'ready' | 'delivered' | 'cancelled'
-          payment_method: 'upi' | 'qr' | 'cod' | 'partial' | 'bank_transfer'
+          payment_method: 'upi' | 'qr' | 'cod' | 'partial' | 'bank_transfer' | 'cash'
           payment_status: 'pending' | 'partial' | 'paid' | 'refunded'
           payment_screenshot_url: string | null
           pickup_date: string | null
@@ -289,7 +302,7 @@ export type Database = {
           total_amount?: number
           advance_amount?: number
           status?: 'pending' | 'confirmed' | 'in_production' | 'ready' | 'delivered' | 'cancelled'
-          payment_method?: 'upi' | 'qr' | 'cod' | 'partial' | 'bank_transfer'
+          payment_method?: 'upi' | 'qr' | 'cod' | 'partial' | 'bank_transfer' | 'cash'
           payment_status?: 'pending' | 'partial' | 'paid' | 'refunded'
           payment_screenshot_url?: string | null
           pickup_date?: string | null
@@ -1078,7 +1091,34 @@ export type Database = {
         Returns: void
       }
       suspend_expired_shops: { Args: Record<never, never>; Returns: number }
+      increment_cloudinary_storage: {
+        Args: { p_shop_id: string; p_bytes: number; p_month_year: string }
+        Returns: void
+      }
     }
+
+    // Stopgap stubs so @supabase/supabase-js can infer row types via `.from(...)`.
+    // These are NOT generated from the real schema — there are no Postgres views,
+    // enums, or composite types modeled here yet. Regenerate this file properly with
+    // `npx supabase gen types typescript --project-id <ref> --schema public` once a
+    // project ref / DB connection is available in this environment.
+    Views: Record<string, never>
+    Enums: Record<string, never>
+    CompositeTypes: Record<string, never>
+  }
+}
+
+export type Database = {
+  public: {
+    Tables: {
+      [K in keyof RawDatabase['public']['Tables']]: RawDatabase['public']['Tables'][K] & {
+        Relationships: []
+      }
+    }
+    Views: RawDatabase['public']['Views']
+    Functions: RawDatabase['public']['Functions']
+    Enums: RawDatabase['public']['Enums']
+    CompositeTypes: RawDatabase['public']['CompositeTypes']
   }
 }
 

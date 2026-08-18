@@ -119,8 +119,8 @@ export default async function OrderDetailPage({ params }: { params: { id: string
             </div>
             {order.advance_amount > 0 && (
               <>
-                <div className="flex justify-between text-xs text-green-600">
-                  <span>Advance Paid</span>
+                <div className="flex justify-between text-xs text-yellow-600">
+                  <span>Advance Reported (unverified)</span>
                   <span>{formatCurrency(order.advance_amount)}</span>
                 </div>
                 <div className="flex justify-between text-xs text-red-600 font-semibold">
@@ -160,6 +160,9 @@ export default async function OrderDetailPage({ params }: { params: { id: string
             }`}>
               {PAYMENT_STATUS_LABELS[order.payment_status] ?? order.payment_status}
             </p>
+            {order.payment_status === 'pending' && (
+              <p className="text-[11px] text-gray-400 mt-1">Order placed — payment verification pending.</p>
+            )}
           </div>
 
           {/* Dates */}

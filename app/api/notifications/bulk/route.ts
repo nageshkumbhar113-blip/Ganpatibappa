@@ -64,7 +64,10 @@ export async function POST(req: NextRequest) {
       shop_id: user.shop_id!,
       title,
       body: notifBody,
-      type: 'bulk',
+      // 'bulk' is not a valid notifications.type (DB CHECK only allows order/payment/
+      // review/inquiry/system/info/stock_low/renewal) — the insert was silently
+      // failing (no throw, error swallowed) so this history log was never written.
+      type: 'system',
       is_read: false,
     })
 

@@ -102,8 +102,8 @@ export default function ProductDetailPage() {
   }
 
   async function handleAddToCart() {
-    if (!product) return
-    addItem({
+    if (!product || !shop?.slug) return
+    addItem(shop.slug, {
       id: product.id,
       name: product.name,
       price: product.offer_price ?? product.price,

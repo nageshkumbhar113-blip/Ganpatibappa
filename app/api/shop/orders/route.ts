@@ -113,7 +113,12 @@ export async function POST(req: NextRequest) {
     const serverTotal = orderItems.reduce((s, i) => s + i.subtotal, 0)
     const orderNumber = generateOrderNumber()
     const advanceAmt = Math.min(advance_amount ?? 0, serverTotal)
-    const paymentStatus = advanceAmt >= serverTotal ? 'paid' : advanceAmt > 0 ? 'partial' : 'pending'
+    // Payment status is NEVER derived from client-supplied amounts. A customer's
+    // claimed advance_amount is only informational (e.g. "I paid X via UPI") until a
+    // shop admin verifies it (screenshot / bank statement) and flips the status via
+    // the admin order PATCH route (app/api/admin/orders/[id]/route.ts), which requires
+    // requireAdmin(). Every new order starts as 'pending' regardless of client input.
+    const paymentStatus = 'pending'
 
     const { data: order, error: orderError } = await adminSupabase
       .from('orders')

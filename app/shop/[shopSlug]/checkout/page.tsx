@@ -53,7 +53,7 @@ export default function CheckoutPage() {
       if (res.ok) {
         const d = await res.json()
         clearCart()
-        toast.success(`Order confirmed! #${d.order.order_number}`)
+        toast.success(`Order placed! #${d.order.order_number}`)
         router.push(`${basePath}/orders/${d.order.id}`)
       } else {
         const d = await res.json()

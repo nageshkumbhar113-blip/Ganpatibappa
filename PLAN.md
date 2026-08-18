@@ -1094,24 +1094,101 @@ git push -u origin main
 
 ---
 
-### 📊 CURRENT STATUS SUMMARY
+### 📊 CURRENT STATUS SUMMARY (Updated: 2026-06-16)
 
 | Item | Status |
 |------|--------|
 | Code (all 237 files) | ✅ Complete |
 | Supabase DB (36 tables) | ✅ Running |
-| Local dev server | ✅ Working (localhost:3001) |
-| All API routes (70) | ✅ 200 OK |
-| Super Admin tested | ✅ Verified |
-| Admin panel tested | ⏳ Login pending |
-| DB fix (upload_preset) | ❌ Run SQL |
+| DB fix (upload_preset column) | ✅ Done |
+| GitHub push | ✅ Done — `nageshkumbhar113-blip/Ganpatibappa` |
+| Vercel deploy | ✅ Live — https://ganpatibappa-alpha.vercel.app |
+| Super Admin login | ✅ `admin@ganpatibappa.in` (password rotated — not stored in repo) |
+| Admin panel login | ✅ Fixed (null redirectTo Zod bug) |
+| SUPABASE_SERVICE_ROLE_KEY (Vercel) | ✅ Fixed (was 2 chars, now 219 chars) |
 | Firebase FCM | ❌ Setup pending |
-| Resend Email | ❌ Setup pending |
+| Resend Email | ❌ Skipped for now (no domain) |
 | Upstash Redis | ❌ Setup pending |
-| GitHub push | ❌ Pending |
-| Vercel deploy | ❌ Pending |
-| Custom domain | ❌ Pending |
+| Custom domain | ❌ Skipped (user doesn't have domain) |
 
 ---
 
-*Udya session start karta veli ya file madhe baghaa ani priority 1 pasun suruvat kara.*
+### 🔴 BUGS FIXED (2026-06-16)
+
+| Bug | Fix |
+|-----|-----|
+| `TypeError: Invalid URL` in build | `app/layout.tsx` — metadataBase safe URL with trim + try/catch |
+| `Invalid URL` from Resend | `lib/email/resend.ts` — lazy init, no module-level `new Resend()` |
+| `MIDDLEWARE_INVOCATION_FAILED 500` | `middleware.ts` — env var guard before Supabase client creation |
+| Firebase Admin crash at build | `lib/firebase/admin.ts` — lazy `getFirebaseAdmin()` function |
+| `otplib` not found | Replaced with `otpauth` in all 3 2FA routes |
+| `requireFeature` not exported | Changed to `checkFeature` with inline 403 in 2FA routes |
+| Deprecated `export const config` | `api/admin/upload/route.ts` → `export const dynamic = 'force-dynamic'` |
+| vercel.json invalid rewrites | Removed all rewrites (`:shopSlug` pattern invalid) |
+| `Expected string, received null` login | `app/login/actions.ts` — `formData.get('redirectTo') ?? undefined` |
+| `SUPABASE_SERVICE_ROLE_KEY` corrupted | Re-set via Vercel REST API (was 2 chars from PowerShell pipe) |
+| Super Admin password not set | Reset via Supabase Auth Admin API |
+
+---
+
+### 🟡 NEXT STEPS — THIRD-PARTY SERVICES
+
+#### A) Firebase FCM (Push Notifications) — OPTIONAL
+1. [console.firebase.google.com](https://console.firebase.google.com) → New Project → "ganpatibappa"
+2. Add env vars to Vercel:
+```
+NEXT_PUBLIC_FIREBASE_API_KEY=
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
+NEXT_PUBLIC_FIREBASE_APP_ID=
+NEXT_PUBLIC_FIREBASE_VAPID_KEY=
+FIREBASE_ADMIN_PROJECT_ID=
+FIREBASE_ADMIN_CLIENT_EMAIL=
+FIREBASE_ADMIN_PRIVATE_KEY=
+```
+
+#### B) Upstash Redis (Rate Limiting) — OPTIONAL
+1. [console.upstash.com](https://console.upstash.com) → Create Database
+2. Add to Vercel: `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN`
+
+#### C) Resend Email — SKIP (no domain currently)
+
+---
+
+### 🔐 SUPER ADMIN CREDENTIALS
+
+| Field | Value |
+|-------|-------|
+| URL | https://ganpatibappa-alpha.vercel.app/login |
+| Email | admin@ganpatibappa.in |
+| Password | rotated 2026-08-18 — stored in password manager, not committed to git |
+
+---
+
+## 📋 17-STEP GOAL CHECKLIST
+
+| Step | Description | Status |
+|------|-------------|--------|
+| 1 | System Architecture + Folder Structure | ✅ Complete |
+| 2 | Database SQL (36 tables + RLS) | ✅ Complete |
+| 3 | Authentication (Login/Register/Forgot/Reset/2FA) | ✅ Complete |
+| 4 | Multi-Tenant Routing (subdomain + custom domain) | ✅ Complete |
+| 5 | Super Admin Panel (Shop Wizard, Dashboard) | ✅ Complete |
+| 6 | Admin Dashboard (all modules) | ✅ Complete |
+| 7 | Product Management (CRUD + images + SEO) | ✅ Complete |
+| 8 | Cloudinary Integration (per-shop, signed uploads) | ✅ Complete |
+| 9 | Order Management (6 statuses + invoice PDF) | ✅ Complete |
+| 10 | Payment Settings (UPI/QR/Bank) | ✅ Complete |
+| 11 | Customer Website (Home/Products/Gallery/Contact) | ✅ Complete |
+| 12 | Reviews (submit/approve/reject) | ✅ Complete |
+| 13 | Gallery (upload/view photos+videos) | ✅ Complete |
+| 14 | PWA (dynamic manifest, install button, offline) | ✅ Complete |
+| 15 | Push Notifications (Firebase FCM) | ✅ Code complete — needs Firebase project |
+| 16 | Custom Domains (mapping + DNS verification) | ✅ Code complete — no domain yet |
+| 17 | Final Audit + Deploy | ✅ Deployed — https://ganpatibappa-alpha.vercel.app |
+
+---
+
+*Last Updated: 2026-06-16*
+*Status: 17/17 Steps Complete — Live on Vercel*

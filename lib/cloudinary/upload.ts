@@ -122,11 +122,12 @@ async function updateCloudinaryUsage(shopId: string, bytes: number): Promise<voi
   const monthYear = new Date().toISOString().substring(0, 7) // YYYY-MM
 
   // Upsert usage record
-  await supabase.rpc('increment_cloudinary_storage', {
+  const { error } = await supabase.rpc('increment_cloudinary_storage', {
     p_shop_id: shopId,
     p_bytes: bytes,
     p_month_year: monthYear,
   })
+  if (error) console.error('[updateCloudinaryUsage]', error)
 }
 
 /** Test connection to Cloudinary and return ping result. */

@@ -10,3 +10,8 @@ Supabase project बनवा	supabase.com	5 min
 10	Vercel deploy + env vars add करा	vercel.com	10 min
 11	Domain connect करा	Domain provider	15 min
 12	Super Admin login करा → पहिली shop बनवा	yoursite.com/super-admin	5 min
+
+
+Field	Value
+Email	admin@ganpatibappa.in
+Password	(rotated — see password manager, not stored in repo)

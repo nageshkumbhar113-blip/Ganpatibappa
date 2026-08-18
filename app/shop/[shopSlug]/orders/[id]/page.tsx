@@ -80,7 +80,7 @@ export default async function OrderDetailPage({ params }: Props) {
             <div className="flex justify-between text-sm"><span className="font-bold text-gray-700">Total</span><span className="font-bold">{formatCurrency(order.total_amount)}</span></div>
             {order.advance_amount > 0 && (
               <>
-                <div className="flex justify-between text-xs text-green-600"><span>Advance Paid</span><span>{formatCurrency(order.advance_amount)}</span></div>
+                <div className="flex justify-between text-xs text-yellow-600"><span>Advance Reported (unverified)</span><span>{formatCurrency(order.advance_amount)}</span></div>
                 <div className="flex justify-between text-xs text-red-600 font-semibold"><span>Balance Due</span><span>{formatCurrency(order.total_amount - order.advance_amount)}</span></div>
               </>
             )}
@@ -99,6 +99,7 @@ export default async function OrderDetailPage({ params }: Props) {
             <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Payment</h3>
             <p className="text-xs capitalize text-gray-600">{order.payment_method ?? 'N/A'}</p>
             <p className={`text-sm font-semibold mt-1 ${order.payment_status === 'paid' ? 'text-green-600' : order.payment_status === 'partial' ? 'text-yellow-600' : 'text-gray-600'}`}>{PAYMENT_STATUS_LABELS[order.payment_status] ?? order.payment_status}</p>
+            {order.payment_status === 'pending' && <p className="text-[11px] text-gray-400 mt-1">Order placed — payment verification pending.</p>}
           </div>
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
             <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Dates</h3>
