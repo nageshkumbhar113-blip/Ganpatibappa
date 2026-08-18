@@ -31,15 +31,15 @@ async function getShopCatalog(categoryId?: string, q?: string, page = 1) {
   if (categoryId) query = query.eq('category_id', categoryId)
   if (q) query = query.ilike('name', `%${q}%`)
 
-  const [{ data: shop }, { data: products, count }, { data: categories }] = await Promise.all([
-    supabase
-      .from('shops')
-      .select(`name, logo_url, banner_url, whatsapp, shop_settings(about_text, show_prices, allow_whatsapp_order)`)
-      .eq('id', shopId)
-      .single(),
-    query,
-    supabase.from('categories').select('id, name').eq('shop_id', shopId).eq('is_active', true).order('sort_order'),
-  ])
+  // Run sequentially, not Promise.all — concurrent requests to the Supabase
+  // REST endpoint from one function invocation intermittently drop a result.
+  const { data: shop } = await supabase
+    .from('shops')
+    .select(`name, logo_url, banner_url, whatsapp, shop_settings(about_text, show_prices, allow_whatsapp_order)`)
+    .eq('id', shopId)
+    .single()
+  const { data: products, count } = await query
+  const { data: categories } = await supabase.from('categories').select('id, name').eq('shop_id', shopId).eq('is_active', true).order('sort_order')
 
   return { shop, products: products ?? [], categories: categories ?? [], total: count ?? 0, totalPages: Math.ceil((count ?? 0) / limit) }
 }

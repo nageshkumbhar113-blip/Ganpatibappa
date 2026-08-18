@@ -34,11 +34,11 @@ export default async function ProductsPage({ params, searchParams }: Props) {
   if (searchParams.category_id) query = query.eq('category_id', searchParams.category_id)
   if (searchParams.q) query = query.ilike('name', `%${searchParams.q}%`)
 
-  const [{ data: products, count }, { data: categories }, { data: settings }] = await Promise.all([
-    query,
-    supabase.from('categories').select('id, name').eq('shop_id', shopRow.id).eq('is_active', true).order('sort_order'),
-    supabase.from('shop_settings').select('show_prices').eq('shop_id', shopRow.id).single(),
-  ])
+  // Run sequentially, not Promise.all — concurrent requests to the Supabase
+  // REST endpoint from one function invocation intermittently drop a result.
+  const { data: products, count } = await query
+  const { data: categories } = await supabase.from('categories').select('id, name').eq('shop_id', shopRow.id).eq('is_active', true).order('sort_order')
+  const { data: settings } = await supabase.from('shop_settings').select('show_prices').eq('shop_id', shopRow.id).single()
 
   const total = count ?? 0
   const totalPages = Math.ceil(total / limit)

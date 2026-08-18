@@ -38,22 +38,12 @@ async function getShopCatalog(slug: string, categoryId?: string, q?: string, pag
   if (categoryId) query = query.eq('category_id', categoryId)
   if (q) query = query.ilike('name', `%${q}%`)
 
-  const [{ data: products, count, error: productsError }, { data: categories }, { data: gallery }] = await Promise.all([
-    query,
-    supabase.from('categories').select('id, name, image_url').eq('shop_id', shop.id).eq('is_active', true).order('sort_order'),
-    supabase.from('gallery').select('id, image_url, caption').eq('shop_id', shop.id).order('sort_order').limit(20),
-  ])
-
-  const fullFields = 'id, name, slug, price, offer_price, images, height_cm, material, stock, is_featured'
-  const cols = fullFields.split(',').map(c => c.trim())
-  const results: Record<string, any> = {}
-  for (const col of cols) {
-    const r = await supabase.from('products').select(`id, ${col}`, { count: 'exact' }).eq('shop_id', shop.id).eq('is_active', true)
-    results[col] = { count: r.count, error: r.error?.message }
-  }
-  const fullSelect = await supabase.from('products').select(fullFields, { count: 'exact' }).eq('shop_id', shop.id).eq('is_active', true)
-
-  console.log('[DEBUG isolate2]', JSON.stringify({ perColumn: results, fullSelectCount: fullSelect.count, fullSelectError: fullSelect.error?.message }))
+  // NOTE: these were previously run via Promise.all(), which intermittently
+  // returned an empty/zero result for the first query under concurrent load
+  // against the Supabase REST endpoint. Running them sequentially fixes it.
+  const { data: products, count } = await query
+  const { data: categories } = await supabase.from('categories').select('id, name, image_url').eq('shop_id', shop.id).eq('is_active', true).order('sort_order')
+  const { data: gallery } = await supabase.from('gallery').select('id, image_url, caption').eq('shop_id', shop.id).order('sort_order').limit(20)
 
   return {
     shop,

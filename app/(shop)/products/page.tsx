@@ -40,19 +40,19 @@ async function getProductsPage(categoryId?: string, q?: string, page = 1) {
 
   const { data, count } = await query
 
-  const [{ data: categories }, { data: settings }] = await Promise.all([
-    supabase
-      .from('categories')
-      .select('id, name, slug')
-      .eq('shop_id', shopId)
-      .eq('is_active', true)
-      .order('sort_order'),
-    supabase
-      .from('shop_settings')
-      .select('show_prices')
-      .eq('shop_id', shopId)
-      .single(),
-  ])
+  // Run sequentially, not Promise.all — concurrent requests to the Supabase
+  // REST endpoint from one function invocation intermittently drop a result.
+  const { data: categories } = await supabase
+    .from('categories')
+    .select('id, name, slug')
+    .eq('shop_id', shopId)
+    .eq('is_active', true)
+    .order('sort_order')
+  const { data: settings } = await supabase
+    .from('shop_settings')
+    .select('show_prices')
+    .eq('shop_id', shopId)
+    .single()
 
   return {
     products: data ?? [],

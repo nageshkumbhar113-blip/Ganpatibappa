@@ -15,11 +15,11 @@ export default async function CategoryPage({ params }: Props) {
   const { data: shopRow } = await supabase.from('shops').select('id').eq('slug', params.shopSlug).eq('status', 'active').single()
   if (!shopRow) notFound()
 
-  const [{ data: category }, { data: products }, { data: settings }] = await Promise.all([
-    supabase.from('categories').select('id, name, image_url, description').eq('id', params.id).eq('shop_id', shopRow.id).single(),
-    supabase.from('products').select('id, name, slug, price, offer_price, images, height_cm, stock').eq('shop_id', shopRow.id).eq('category_id', params.id).eq('is_active', true).order('created_at', { ascending: false }),
-    supabase.from('shop_settings').select('show_prices').eq('shop_id', shopRow.id).single(),
-  ])
+  // Run sequentially, not Promise.all — concurrent requests to the Supabase
+  // REST endpoint from one function invocation intermittently drop a result.
+  const { data: category } = await supabase.from('categories').select('id, name, image_url, description').eq('id', params.id).eq('shop_id', shopRow.id).single()
+  const { data: products } = await supabase.from('products').select('id, name, slug, price, offer_price, images, height_cm, stock').eq('shop_id', shopRow.id).eq('category_id', params.id).eq('is_active', true).order('created_at', { ascending: false })
+  const { data: settings } = await supabase.from('shop_settings').select('show_prices').eq('shop_id', shopRow.id).single()
 
   if (!category) notFound()
 

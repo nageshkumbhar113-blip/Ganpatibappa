@@ -30,22 +30,22 @@ async function getCategoryData(slugOrId: string, page = 1) {
 
   if (!category) return null
 
-  const [{ data: products, count }, { data: settings }] = await Promise.all([
-    supabase
-      .from('products')
-      .select('id, name, slug, price, offer_price, images, height_cm, stock, is_featured', { count: 'exact' })
-      .eq('shop_id', shopId)
-      .eq('category_id', category.id)
-      .eq('is_active', true)
-      .order('is_featured', { ascending: false })
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1),
-    supabase
-      .from('shop_settings')
-      .select('show_prices')
-      .eq('shop_id', shopId)
-      .single(),
-  ])
+  // Run sequentially, not Promise.all — concurrent requests to the Supabase
+  // REST endpoint from one function invocation intermittently drop a result.
+  const { data: products, count } = await supabase
+    .from('products')
+    .select('id, name, slug, price, offer_price, images, height_cm, stock, is_featured', { count: 'exact' })
+    .eq('shop_id', shopId)
+    .eq('category_id', category.id)
+    .eq('is_active', true)
+    .order('is_featured', { ascending: false })
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1)
+  const { data: settings } = await supabase
+    .from('shop_settings')
+    .select('show_prices')
+    .eq('shop_id', shopId)
+    .single()
 
   return {
     category,
