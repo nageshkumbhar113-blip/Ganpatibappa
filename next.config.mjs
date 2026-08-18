@@ -20,7 +20,7 @@ const securityHeaders = [
           "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
           "font-src 'self' data: https://fonts.gstatic.com",
           "img-src 'self' data: blob: https://res.cloudinary.com https://lh3.googleusercontent.com https://www.google-analytics.com",
-          "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://fcm.googleapis.com https://www.google-analytics.com https://analytics.google.com",
+          "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://fcm.googleapis.com https://www.google-analytics.com https://analytics.google.com https://api.cloudinary.com https://res.cloudinary.com",
           "media-src 'self' https://res.cloudinary.com",
           "worker-src 'self' blob:",
           "frame-src 'none'",
