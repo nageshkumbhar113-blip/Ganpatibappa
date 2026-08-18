@@ -1192,3 +1192,160 @@ FIREBASE_ADMIN_PRIVATE_KEY=
 
 *Last Updated: 2026-06-16*
 *Status: 17/17 Steps Complete — Live on Vercel*
+
+---
+---
+
+# 🧪 QA SESSION — 2026-08-18/19
+
+Live browser testing (Playwright) against https://ganpatibappa-alpha.vercel.app
+
+## ✅ आज पूर्ण झालेलं काम
+
+### 🔐 Security (सर्व fix + verified)
+
+| काय | स्थिती |
+|-----|--------|
+| Super admin password git मध्ये leak (se.txt + PLAN.md) | ✅ Rotated + redacted |
+| **Supabase `service_role` key public GitHub repo मध्ये hardcoded** (`run-migrations.mjs`) — पूर्ण DB चा access | ✅ Legacy keys disabled, नवीन `sb_publishable_*`/`sb_secret_*` keys, code मधून hardcode काढला, जुना key verified dead (401) |
+| Order "paid" status client-supplied amount वरून ठरत होता | ✅ आता नेहमी `pending`, फक्त admin PATCH ने `paid` |
+| Next.js critical CVE (14.2.15) | ✅ 14.2.35 वर upgrade |
+| Rate limiting बंद (Upstash unconfigured) | ✅ Upstash Redis live, verified ping 200 |
+
+### 🐛 Bugs सापडले + fix (code)
+
+| Bug | Fix |
+|-----|-----|
+| **CSP ने Cloudinary uploads block केले** — साईटवर कुठलाही फोटो कधीच upload होत नव्हता (products/gallery/logo/banner/QR) | ✅ `next.config.mjs` connect-src मध्ये cloudinary जोडलं |
+| Vercel वरचे `CLOUDINARY_*` env vars corrupt (BOM artifact) | ✅ तिन्ही स्वच्छ re-set |
+| Add to Cart crash (platform-domain product page — missing shopSlug arg) | ✅ Fixed |
+| Checkout "Cash" निवडल्यास order fail (DB CHECK constraint) | ✅ Migration 011 |
+| `increment_cloudinary_storage` function अस्तित्वातच नव्हती | ✅ Migration 012 |
+| `categories.description` column अस्तित्वात नव्हता | ✅ Migration 010 |
+| Resend `reply_to` → `replyTo` (emails मध्ये header drop) | ✅ Fixed |
+| Bulk notification `type: 'bulk'` — CHECK constraint fail | ✅ `'system'` |
+| Shop pages/APIs वर dynamic rendering config नव्हता | ✅ 15 files मध्ये `force-dynamic` |
+| TypeScript inference तुटलेली (466 errors) | ✅ 177 वर (Relationships stub) |
+
+### 🎉 Live test — जे काम करतंय (verified)
+
+- ✅ Super Admin login → Platform Dashboard
+- ✅ **Create New Shop wizard पूर्ण 4 steps** → shop + owner account + trial subscription तयार
+- ✅ नवीन shop owner login → स्वतःचं Admin Panel
+- ✅ Category create
+- ✅ Product create (सर्व fields + category + pricing)
+- ✅ **Product image upload → Cloudinary** (CSP fix नंतर verified 200)
+- ✅ Suspended shop चं customer page नीट "Shop Unavailable" दाखवतं
+- ✅ PWA install prompt
+- ✅ Form validation (WhatsApp required, इ.)
+- ✅ Admin pages load: Media Storage, 2FA, Settings, Theme, Payment, Domain
+
+---
+
+## 🔴 उद्या करायचं — BUG LIST
+
+### P0 — Blocker (customer-facing तुटलेलं)
+
+**BUG-1: Shop storefront वर products दिसत नाहीत ("0 products")**
+- Admin panel मध्ये product Active दिसतो, DB मध्ये आहे, पण customer page वर "0 products"
+- तपासलं: DB data बरोबर ✅ | RLS बरोबर ✅ | anon key ने query चालते ✅ | नवीन keys ✅ | `force-dynamic` लावलं ✅ | `Promise.all` → sequential केलं ✅ — **तरीही fix झालं नाही**
+- Debug logs मध्ये `count: 0, error: null` पण त्याच function मधली दुसरी identical query 2 rows देते
+- 🔍 पुढची पावलं: `.range(offset, offset+limit-1)` clause वेगळा test कर; `count: 'exact'` काढून बघ; `.order('is_featured')` वर index/null-handling तपास; local dev वर same query चालते का बघ (production-only issue आहे का)
+- Affected: `app/shop/[shopSlug]/page.tsx`, `app/(shop)/page.tsx`, products listing pages
+
+**BUG-2: Admin Security page — audit-logs API 401**
+- `/admin/security` → `GET /api/admin/security/audit-logs` returns 401 (shop owner logged in असूनही)
+- Login History / IP Restrictions tabs पण तपासायचे
+
+### P1 — दिसणारे issues
+
+**BUG-3:** Suspended shop page वर emoji garbled (`ðŸ™"` ऐवजी 🙏) — charset/encoding header issue
+**BUG-4:** `themeColor` metadata deprecated warning (प्रत्येक request वर log) — `viewport` export मध्ये हलवा
+**BUG-5:** Super Admin मध्ये shop delete करताना confirmation modal नाही (`ShopTable.tsx:145` TODO)
+**BUG-6:** 3 जुन्या shops "suspended" + subscription expired — cleanup करायचं का ठरवा
+
+### P2 — Tech debt
+
+- 177 TypeScript errors बाकी (`supabase gen types` चालवून खरे types तयार करा → बहुतेक निघून जातील)
+- `ignoreBuildErrors: true` अजून on आहे
+- दोन rate-limiter implementations (`lib/rate-limit.ts` वापरात, `lib/middleware/rate-limit.ts` dead code — काढा)
+- `xlsx` library — high severity vuln, upstream fix नाही
+- Next.js 15 migration (उरलेल्या advisories फक्त 15.x मध्ये fixed)
+- Resend email — domain घेतल्यावर setup
+
+---
+
+## 📋 उद्याची TESTING CHECKLIST
+
+प्रत्येक page: उघडा → console errors बघा → create/edit/delete करून बघा → customer side वर परिणाम दिसतो का तपासा
+
+### CATALOG
+- [ ] **Products** — list, create, edit, delete, duplicate, search, image upload/reorder, SEO fields, stock, featured toggle, active/inactive
+- [ ] **Import Products** — Excel upload, validation errors, bulk insert
+- [ ] **Export Products** — Excel download, सर्व columns बरोबर
+- [ ] **Categories** — create, edit, delete, sort order, image, active toggle, customer side वर दिसते का
+- [ ] **Gallery** — image upload (multiple), delete, sort, customer gallery page वर दिसतं का
+
+### SALES
+- [ ] **Orders** — list, filter by status, detail view, status बदल (6 statuses), **payment verification (pending → paid)**, invoice PDF download
+- [ ] **Quotations** — create, list, PDF download, edit
+- [ ] **Customers** — list, spend stats, detail
+- [ ] **Reviews** — list, approve, reject/delete, customer side वर approved review दिसतो का
+- [ ] **Inquiries** — list, mark handled, customer contact form वरून inquiry येते का
+
+### MARKETING
+- [ ] **Campaigns** — create festival campaign, plan limit check
+- [ ] **Notifications** — push notification पाठवणे (Premium plan gate तपासा)
+- [ ] **SEO & Marketing** — GA ID, GSC, FB Pixel, OG image, robots.txt — save + customer page वर inject होतं का
+
+### ANALYTICS
+- [ ] **Reports** — monthly stats, chart, recent orders
+- [ ] **Top Products** — data बरोबर आहे का
+- [ ] **Top Customers** — data बरोबर आहे का
+
+### ACCOUNT
+- [ ] **Staff** — invite, permissions, edit, delete, staff login करून permissions काम करतात का
+- [ ] **Media Storage** — स्वतःचं Cloudinary credentials save, test connection, usage stats
+- [ ] **Security** — 🔴 audit logs (BUG-2), login history, IP restrictions
+- [ ] **2FA Setup** — enable, QR scan, verify, disable, 2FA सह login
+- [ ] **Settings** — shop info, logo/banner upload, maps URL, store config save
+- [ ] **Theme & Colors** — color बदल → customer site वर लगेच दिसतो का
+- [ ] **Payment Settings** — UPI ID, QR upload, bank details → checkout वर दिसतात का
+- [ ] **Domain** — subdomain, custom domain add, DNS verification flow
+- [ ] **Subscription** — plan दिसतो, expiry, upgrade flow
+
+### CUSTOMER SIDE (end-to-end)
+- [ ] Home page — 🔴 products दिसतात का (BUG-1)
+- [ ] Products listing + search + category filter + pagination
+- [ ] Product detail — images, specs, WhatsApp order, wishlist
+- [ ] **Add to Cart → Cart → Checkout → Order place** (पूर्ण flow)
+- [ ] Payment methods (UPI/QR/Bank/Cash) + screenshot upload
+- [ ] My Orders + order detail + status tracker
+- [ ] Wishlist, Recently Viewed, Profile
+- [ ] Gallery, About, Contact (inquiry submit)
+- [ ] Review submit → admin ला दिसतो का
+- [ ] PWA install + offline
+
+### SUPER ADMIN
+- [ ] Dashboard stats बरोबर आहेत का
+- [ ] Shops list, detail, edit, clone, transfer, backup
+- [ ] Shop suspend/activate → customer site वर परिणाम
+- [ ] Shop delete (🔴 confirmation modal नाही — BUG-5)
+- [ ] Subscriptions — plans, assign, expire handling
+- [ ] System — logs, audit
+
+---
+
+## 🔑 TEST ACCOUNTS
+
+| Role | URL | Email | Password |
+|------|-----|-------|----------|
+| Super Admin | /login | admin@ganpatibappa.in | (password manager) |
+| Test Shop Owner | /login | qa-test-819@ganpatibappa.in | QaTest819Pass! |
+| Test Shop (customer) | /shop/qa-test-shop-819 | — | — |
+
+Test shop मध्ये सध्या: 1 category (Ganesh Idols), 2 products (एकात image आहे)
+
+---
+
+*QA session: 2026-08-18/19 — Playwright live browser testing*
