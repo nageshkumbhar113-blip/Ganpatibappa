@@ -44,12 +44,22 @@ async function getShopCatalog(slug: string, categoryId?: string, q?: string, pag
     supabase.from('gallery').select('id, image_url, caption').eq('shop_id', shop.id).order('sort_order').limit(20),
   ])
 
+  const simpleCheck = await supabase.from('products').select('id, shop_id, is_active').eq('shop_id', shop.id)
+  const noFilterCheck = await supabase.from('products').select('id, shop_id, is_active').limit(5)
+
   console.log('[DEBUG getShopCatalog]', {
     slug,
     shopId: shop.id,
     productsCount: products?.length,
     countField: count,
     productsError,
+    simpleCheckData: simpleCheck.data,
+    simpleCheckError: simpleCheck.error,
+    noFilterCheckData: noFilterCheck.data,
+    noFilterCheckError: noFilterCheck.error,
+    supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+    serviceKeyPrefix: process.env.SUPABASE_SERVICE_ROLE_KEY?.slice(0, 12),
   })
 
   return {
