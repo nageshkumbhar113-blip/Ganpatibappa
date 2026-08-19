@@ -122,10 +122,30 @@ export default function SettingsPage() {
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     startTransition(async () => {
+      // /api/admin/settings' SettingsSchema expects a FLAT body (name,
+      // whatsapp, maps_url, about_text, show_prices, ...) at the top level.
+      // This used to send { shop, settings } nested — every key the schema
+      // looks for was therefore undefined, Zod's blanket .optional() let it
+      // through anyway, both update objects ended up empty, and the route
+      // returned {success:true} having written nothing at all. This page's
+      // Save button has never actually saved anything, for any shop.
       const res = await fetch('/api/admin/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ shop, settings }),
+        body: JSON.stringify({
+          name: shop.name,
+          whatsapp: shop.whatsapp,
+          address: shop.address,
+          maps_url: shop.maps_url || null,
+          logo_url: shop.logo_url || null,
+          banner_url: shop.banner_url || null,
+          meta_title: settings.meta_title,
+          meta_description: settings.meta_description,
+          about_text: settings.about_text,
+          youtube_url: settings.youtube_url || null,
+          show_prices: settings.show_prices,
+          allow_whatsapp_order: settings.allow_whatsapp_order,
+        }),
       })
       if (res.ok) {
         toast.success('Settings saved')
