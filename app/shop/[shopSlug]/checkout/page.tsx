@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { toast } from 'sonner'
@@ -8,6 +8,7 @@ import { ChevronLeft, Loader2, CreditCard, Smartphone } from 'lucide-react'
 import { useCart } from '@/lib/hooks/useCart'
 import { useShop } from '@/lib/contexts/shop-context'
 import { formatCurrency } from '@/lib/utils/format'
+import { UpiPaymentQR } from '@/components/shop/UpiPaymentQR'
 
 export default function CheckoutPage() {
   const router = useRouter()
@@ -16,8 +17,18 @@ export default function CheckoutPage() {
   const [isSubmitting, startTransition] = useTransition()
   const [paymentScreenshot, setPaymentScreenshot] = useState<File | null>(null)
   const [form, setForm] = useState({ customer_name: '', customer_phone: '', customer_email: '', customer_address: '', pickup_date: '', payment_method: 'upi', advance_amount: '', notes: '' })
+  const [upi, setUpi] = useState<{ upi_id: string; upi_name?: string; account_holder_name?: string } | null>(null)
+
+  useEffect(() => {
+    apiFetch('/api/shop/info')
+      .then((r) => r.json())
+      .then((d) => { if (d.shop?.upi_id) setUpi(d.shop) })
+      .catch(() => {})
+  }, [apiFetch])
 
   function set(field: string, value: string) { setForm(f => ({ ...f, [field]: value })) }
+
+  const amountDue = form.advance_amount ? parseFloat(form.advance_amount) || 0 : totalAmount
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -121,7 +132,17 @@ export default function CheckoutPage() {
               </button>
             ))}
           </div>
-          <div><label className="text-xs font-medium text-gray-600 block mb-1">Advance Amount (optional)</label><input type="number" min="0" max={totalAmount} value={form.advance_amount} onChange={e => set('advance_amount', e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400" placeholder="0" /><p className="text-xs text-gray-400 mt-1">Leave blank if paying full amount later</p></div>
+          <div><label className="text-xs font-medium text-gray-600 block mb-1">Booking Amount (Advance) — optional</label><input type="number" min="0" max={totalAmount} value={form.advance_amount} onChange={e => set('advance_amount', e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400" placeholder="0" /><p className="text-xs text-gray-400 mt-1">मूर्ती book करण्यासाठी आत्ता किती रक्कम भरताय ते टाका — बाकी रक्कम नंतर. रिकामं ठेवल्यास पूर्ण रक्कम नंतर भरा.</p></div>
+
+          {form.payment_method === 'upi' && upi?.upi_id && (
+            <UpiPaymentQR
+              upiId={upi.upi_id}
+              payeeName={upi.upi_name || upi.account_holder_name}
+              amount={amountDue}
+              note={`Order`}
+            />
+          )}
+
           <div><label className="text-xs font-medium text-gray-600 block mb-1">Payment Screenshot (optional)</label><input type="file" accept="image/*" onChange={e => setPaymentScreenshot(e.target.files?.[0] ?? null)} className="w-full text-xs text-gray-600 file:mr-2 file:rounded-lg file:border-0 file:bg-orange-50 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-orange-700" /></div>
         </div>
 

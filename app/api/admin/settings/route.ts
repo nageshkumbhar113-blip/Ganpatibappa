@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 import { requireShopOwner } from '@/lib/middleware/auth-guard'
 import { z } from 'zod'
 import { handleApiError } from '@/lib/utils/api-error'
+import { optionalUrl } from '@/lib/utils/zod-helpers'
+import { sequential } from '@/lib/utils/sequential'
 
 const SettingsSchema = z.object({
   about_text: z.string().max(3000).optional().nullable(),
@@ -11,19 +13,23 @@ const SettingsSchema = z.object({
   allow_whatsapp_order: z.boolean().optional(),
   meta_title: z.string().max(200).optional().nullable(),
   meta_description: z.string().max(500).optional().nullable(),
-  youtube_url: z.string().url().optional().nullable(),
+  // .url() rejects '' outright — these fields all use optionalUrl() so an
+  // empty/cleared input never fails the WHOLE payload's validation (see
+  // lib/utils/zod-helpers.ts; this exact trap silently broke Payment
+  // Settings saves whenever the QR field was left blank).
+  youtube_url: optionalUrl(),
   // Shop fields
   name: z.string().min(1).max(100).optional(),
   whatsapp: z.string().max(20).optional(),
   address: z.string().max(300).optional(),
-  logo_url: z.string().url().optional().nullable(),
-  banner_url: z.string().url().optional().nullable(),
+  logo_url: optionalUrl(),
+  banner_url: optionalUrl(),
   theme_config: z.record(z.unknown()).optional(),
-  maps_url: z.string().url().optional().nullable(),
+  maps_url: optionalUrl(),
   // Payment fields (stored in shops table)
   upi_id: z.string().max(100).optional().nullable(),
   upi_name: z.string().max(100).optional().nullable(),
-  qr_code_url: z.string().url().optional().nullable(),
+  qr_code_url: optionalUrl(),
   account_holder_name: z.string().max(100).optional().nullable(),
 })
 
@@ -32,7 +38,10 @@ export async function GET(_req: NextRequest) {
     const user = await requireShopOwner()
     const supabase = createClient()
 
-    const [{ data: shop }, { data: settings }] = await Promise.all([
+    // Sequential, not Promise.all — see lib/utils/sequential.ts. This GET
+    // was missed in the earlier site-wide sweep of this same route (its PUT
+    // handler was already converted).
+    const [{ data: shop }, { data: settings }] = await sequential([
       supabase
         .from('shops')
         .select('id, name, slug, whatsapp, address, maps_url, logo_url, banner_url, theme_config, domain, subdomain, status, upi_id, upi_name, qr_code_url, account_holder_name')
@@ -43,7 +52,7 @@ export async function GET(_req: NextRequest) {
         .select('*')
         .eq('shop_id', user.shop_id!)
         .single(),
-    ])
+    ] as const)
 
     return NextResponse.json({ shop, settings })
   } catch (error) {
@@ -101,13 +110,19 @@ export async function PUT(req: NextRequest) {
     // carrying maps_url never actually landed. Each awaited write below
     // surfaces its own error instead of failing silently.
     if (Object.keys(settingsUpdate).length > 0) {
+      // `as any` — settingsUpdate/shopUpdate are built dynamically as
+      // Record<string, unknown>, which the generated Supabase types (built
+      // from a schema snapshot older than several of these columns) can't
+      // match against the table's literal Update type; build succeeds
+      // regardless (next.config.mjs has typescript.ignoreBuildErrors: true)
+      // but this keeps `tsc --noEmit` clean too.
       const { error } = await supabase
         .from('shop_settings')
-        .upsert({ ...settingsUpdate, shop_id: user.shop_id! }, { onConflict: 'shop_id' })
+        .upsert({ ...settingsUpdate, shop_id: user.shop_id! } as any, { onConflict: 'shop_id' })
       if (error) throw error
     }
     if (Object.keys(shopUpdate).length > 0) {
-      const { error } = await supabase.from('shops').update(shopUpdate).eq('id', user.shop_id!)
+      const { error } = await (supabase.from('shops') as any).update(shopUpdate).eq('id', user.shop_id!)
       if (error) throw error
     }
 

@@ -4,12 +4,16 @@ import { requireAdmin } from '@/lib/middleware/auth-guard'
 import { checkFeature } from '@/lib/middleware/plan-guard'
 import { sendBulkPushNotifications } from '@/lib/firebase/admin'
 import { z } from 'zod'
+import { optionalUrl } from '@/lib/utils/zod-helpers'
 
 const BulkNotifSchema = z.object({
   title: z.string().min(1).max(100),
   body: z.string().min(1).max(500),
   target: z.enum(['all', 'customers', 'admins']),
-  url: z.string().url().optional(),
+  // '' (link left blank, the common case) used to fail .url() and reject
+  // the whole notification — optionalUrl({nullable:false}) treats '' the
+  // same as an omitted field.
+  url: optionalUrl({ nullable: false }),
 })
 
 export async function POST(req: NextRequest) {
