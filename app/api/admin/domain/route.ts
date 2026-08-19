@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { requireShopOwner } from '@/lib/middleware/auth-guard'
 import { z } from 'zod'
 import crypto from 'crypto'
+import { handleApiError } from '@/lib/utils/api-error'
 
 const AddDomainSchema = z.object({
   domain: z
@@ -27,8 +28,8 @@ export async function GET() {
     if (error) throw error
 
     return NextResponse.json({ domains: data ?? [] })
-  } catch {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  } catch (error) {
+    return handleApiError(error, 'admin/domain')
   }
 }
 
@@ -107,7 +108,7 @@ export async function DELETE(req: NextRequest) {
     if (error) throw error
 
     return NextResponse.json({ success: true })
-  } catch {
-    return NextResponse.json({ error: 'Failed to remove domain' }, { status: 500 })
+  } catch (error) {
+    return handleApiError(error, 'admin/domain')
   }
 }

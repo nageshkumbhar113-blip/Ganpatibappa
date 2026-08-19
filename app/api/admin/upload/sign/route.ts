@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createHash } from 'crypto'
 import { requireAdmin } from '@/lib/middleware/auth-guard'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { handleApiError } from '@/lib/utils/api-error'
 
 const VALID_FOLDERS = ['products', 'gallery', 'logos', 'banners', 'payments', 'campaigns'] as const
 type Folder = typeof VALID_FOLDERS[number]
@@ -52,7 +53,7 @@ export async function GET(req: NextRequest) {
       timestamp,
       folder: folderPath,
     })
-  } catch {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  } catch (error) {
+    return handleApiError(error, 'admin/upload/sign')
   }
 }

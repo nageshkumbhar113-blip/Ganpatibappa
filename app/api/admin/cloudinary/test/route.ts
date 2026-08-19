@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/middleware/auth-guard'
 import { testCloudinaryConnection } from '@/lib/cloudinary/upload'
+import { handleApiError } from '@/lib/utils/api-error'
 
 export async function POST(req: NextRequest) {
   try {
@@ -9,7 +10,7 @@ export async function POST(req: NextRequest) {
 
     const result = await testCloudinaryConnection(user.shop_id)
     return NextResponse.json(result, { status: result.success ? 200 : 400 })
-  } catch {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  } catch (error) {
+    return handleApiError(error, 'admin/cloudinary/test')
   }
 }

@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { requireSuperAdmin } from '@/lib/middleware/auth-guard'
 import { logAuditEvent } from '@/lib/utils/audit-logger'
 import { z } from 'zod'
+import { handleApiError } from '@/lib/utils/api-error'
 
 const UpdateShopSchema = z.object({
   name: z.string().min(1).max(100).optional(),
@@ -50,8 +51,8 @@ export async function GET(
         owner_phone: owner?.phone ?? '',
       },
     })
-  } catch {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  } catch (error) {
+    return handleApiError(error, 'super-admin/shops/[id]')
   }
 }
 
@@ -131,8 +132,8 @@ export async function PATCH(
     })
 
     return NextResponse.json({ shop: data })
-  } catch {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  } catch (error) {
+    return handleApiError(error, 'super-admin/shops/[id]')
   }
 }
 
@@ -164,7 +165,7 @@ export async function DELETE(
     })
 
     return NextResponse.json({ success: true })
-  } catch {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  } catch (error) {
+    return handleApiError(error, 'super-admin/shops/[id]')
   }
 }

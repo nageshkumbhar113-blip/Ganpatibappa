@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { requireShopOwner } from '@/lib/middleware/auth-guard'
 import { checkFeature } from '@/lib/middleware/plan-guard'
 import { z } from 'zod'
+import { handleApiError } from '@/lib/utils/api-error'
 
 const IPSchema = z.object({
   ip_address: z.string().min(7).max(45),
@@ -22,8 +23,8 @@ export async function GET(_req: NextRequest) {
       .order('created_at', { ascending: false })
 
     return NextResponse.json({ restrictions: data ?? [] })
-  } catch {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  } catch (error) {
+    return handleApiError(error, 'admin/security/ip')
   }
 }
 
@@ -72,7 +73,7 @@ export async function DELETE(req: NextRequest) {
       .eq('shop_id', user.shop_id!)
 
     return NextResponse.json({ success: true })
-  } catch {
-    return NextResponse.json({ error: 'Failed' }, { status: 500 })
+  } catch (error) {
+    return handleApiError(error, 'admin/security/ip')
   }
 }

@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/middleware/auth-guard'
 import { checkFeature } from '@/lib/middleware/plan-guard'
 import { z } from 'zod'
+import { handleApiError } from '@/lib/utils/api-error'
 
 const QuotationItemSchema = z.object({
   name: z.string().min(1).max(200),
@@ -52,8 +53,8 @@ export async function GET(req: NextRequest) {
     if (error) throw error
 
     return NextResponse.json({ quotations: data, total: count, page })
-  } catch {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  } catch (error) {
+    return handleApiError(error, 'admin/quotations')
   }
 }
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { z } from 'zod'
+import { handleApiError } from '@/lib/utils/api-error'
 
 export const dynamic = 'force-dynamic'
 
@@ -32,8 +33,8 @@ export async function GET(req: NextRequest) {
     const { data } = await query.limit(50)
 
     return NextResponse.json({ reviews: data ?? [] })
-  } catch {
-    return NextResponse.json({ error: 'Failed to load reviews' }, { status: 500 })
+  } catch (error) {
+    return handleApiError(error, 'shop/reviews')
   }
 }
 
@@ -77,7 +78,7 @@ export async function POST(req: NextRequest) {
     if (error) throw error
 
     return NextResponse.json({ review: data, message: 'Review submitted. Awaiting approval.' }, { status: 201 })
-  } catch {
-    return NextResponse.json({ error: 'Failed to submit review' }, { status: 500 })
+  } catch (error) {
+    return handleApiError(error, 'shop/reviews')
   }
 }

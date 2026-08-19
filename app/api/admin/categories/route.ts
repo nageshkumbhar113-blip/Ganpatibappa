@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/middleware/auth-guard'
 import { z } from 'zod'
+import { handleApiError } from '@/lib/utils/api-error'
 
 const CategorySchema = z.object({
   name: z.string().min(1).max(100),
@@ -23,8 +24,8 @@ export async function GET(_req: NextRequest) {
       .order('sort_order', { ascending: true })
 
     return NextResponse.json({ categories: data ?? [] })
-  } catch {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  } catch (error) {
+    return handleApiError(error, 'admin/categories')
   }
 }
 

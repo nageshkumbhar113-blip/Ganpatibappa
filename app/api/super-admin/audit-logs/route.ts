@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireSuperAdmin } from '@/lib/middleware/auth-guard'
+import { handleApiError } from '@/lib/utils/api-error'
 
 export async function GET(req: NextRequest) {
   try {
@@ -37,7 +38,7 @@ export async function GET(req: NextRequest) {
     }))
 
     return NextResponse.json({ logs, total: count ?? 0, page })
-  } catch {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  } catch (error) {
+    return handleApiError(error, 'super-admin/audit-logs')
   }
 }

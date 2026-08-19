@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { requireShopOwner } from '@/lib/middleware/auth-guard'
 import { z } from 'zod'
+import { handleApiError } from '@/lib/utils/api-error'
 
 const SettingsSchema = z.object({
   about_text: z.string().max(3000).optional().nullable(),
@@ -45,8 +46,8 @@ export async function GET(_req: NextRequest) {
     ])
 
     return NextResponse.json({ shop, settings })
-  } catch {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  } catch (error) {
+    return handleApiError(error, 'admin/settings')
   }
 }
 

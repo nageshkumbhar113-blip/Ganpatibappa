@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireShopOwner } from '@/lib/middleware/auth-guard'
 import { z } from 'zod'
+import { handleApiError } from '@/lib/utils/api-error'
 
 const UpdateStaffSchema = z.object({
   role: z.enum(['manager', 'employee']).optional(),
@@ -47,8 +48,8 @@ export async function PATCH(
     }
 
     return NextResponse.json({ staff: data })
-  } catch {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  } catch (error) {
+    return handleApiError(error, 'admin/staff/[id]')
   }
 }
 
@@ -84,7 +85,7 @@ export async function DELETE(
       .eq('id', staffRecord.user_id)
 
     return NextResponse.json({ success: true })
-  } catch {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  } catch (error) {
+    return handleApiError(error, 'admin/staff/[id]')
   }
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { z } from 'zod'
 import { rateLimit, getIP, rateLimitResponse } from '@/lib/rate-limit'
+import { handleApiError } from '@/lib/utils/api-error'
 
 const SubscribeSchema = z.object({
   email: z.string().email(),
@@ -37,7 +38,7 @@ export async function POST(req: NextRequest) {
       )
 
     return NextResponse.json({ success: true, message: 'Successfully subscribed to newsletter!' })
-  } catch {
-    return NextResponse.json({ error: 'Failed to subscribe' }, { status: 500 })
+  } catch (error) {
+    return handleApiError(error, 'shop/newsletter/subscribe')
   }
 }

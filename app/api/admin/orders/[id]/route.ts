@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/middleware/auth-guard'
 import { logAuditEvent } from '@/lib/utils/audit-logger'
+import { handleApiError } from '@/lib/utils/api-error'
 
 export async function GET(
   _req: NextRequest,
@@ -24,8 +25,8 @@ export async function GET(
     if (error || !data) return NextResponse.json({ error: 'Order not found' }, { status: 404 })
 
     return NextResponse.json({ order: data })
-  } catch {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  } catch (error) {
+    return handleApiError(error, 'admin/orders/[id]')
   }
 }
 

@@ -8,7 +8,7 @@ import QRCode from 'qrcode'
 
 export async function POST() {
   const shopId = headers().get('x-shop-id')!
-  const has2FA = await checkFeature(shopId, 'two_factor_auth' as any)
+  const has2FA = await checkFeature(shopId, 'two_fa')
   if (!has2FA) return NextResponse.json({ error: '2FA requires Premium plan' }, { status: 403 })
 
   const supabase = createClient()

@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { z } from 'zod'
 import { rateLimit, getIP, rateLimitResponse } from '@/lib/rate-limit'
+import { handleApiError } from '@/lib/utils/api-error'
 
 export const dynamic = 'force-dynamic'
 
@@ -52,8 +53,8 @@ export async function GET(req: NextRequest) {
     if (error) throw error
 
     return NextResponse.json({ orders: data ?? [] })
-  } catch {
-    return NextResponse.json({ error: 'Failed to load orders' }, { status: 500 })
+  } catch (error) {
+    return handleApiError(error, 'shop/orders')
   }
 }
 

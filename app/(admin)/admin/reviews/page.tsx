@@ -7,7 +7,7 @@ import { formatDate } from '@/lib/utils/format'
 
 interface Review {
   id: string
-  reviewer_name: string
+  customer_name: string
   rating: number
   comment?: string
   is_approved: boolean
@@ -108,7 +108,7 @@ export default function ReviewsPage() {
                         />
                       ))}
                     </div>
-                    <span className="text-sm font-semibold text-gray-900">{review.reviewer_name}</span>
+                    <span className="text-sm font-semibold text-gray-900">{review.customer_name}</span>
                     {!review.is_approved && (
                       <span className="rounded-full bg-yellow-100 text-yellow-700 text-xs font-medium px-2 py-0.5">
                         Pending

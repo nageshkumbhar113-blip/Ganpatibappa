@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/middleware/auth-guard'
+import { handleApiError } from '@/lib/utils/api-error'
 
 export async function GET() {
   try {
@@ -9,15 +10,15 @@ export async function GET() {
 
     const { data, error } = await supabase
       .from('reviews')
-      .select('id, reviewer_name, rating, comment, is_approved, created_at, products(name)')
+      .select('id, customer_name, rating, comment, is_approved, created_at, products(name)')
       .eq('shop_id', user.shop_id!)
       .order('created_at', { ascending: false })
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
     return NextResponse.json({ reviews: data ?? [] })
-  } catch {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  } catch (error) {
+    return handleApiError(error, 'admin/reviews')
   }
 }
 
@@ -36,8 +37,8 @@ export async function PATCH(req: NextRequest) {
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     return NextResponse.json({ success: true })
-  } catch {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  } catch (error) {
+    return handleApiError(error, 'admin/reviews')
   }
 }
 
@@ -57,7 +58,7 @@ export async function DELETE(req: NextRequest) {
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     return NextResponse.json({ success: true })
-  } catch {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  } catch (error) {
+    return handleApiError(error, 'admin/reviews')
   }
 }

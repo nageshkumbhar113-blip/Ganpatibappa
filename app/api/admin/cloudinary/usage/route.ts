@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/middleware/auth-guard'
 import { getCloudinaryUsage } from '@/lib/cloudinary/upload'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { handleApiError } from '@/lib/utils/api-error'
 
 export async function GET(req: NextRequest) {
   try {
@@ -21,7 +22,7 @@ export async function GET(req: NextRequest) {
       .limit(6)
 
     return NextResponse.json({ live: liveUsage, history: history ?? [] })
-  } catch {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  } catch (error) {
+    return handleApiError(error, 'admin/cloudinary/usage')
   }
 }

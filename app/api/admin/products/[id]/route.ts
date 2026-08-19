@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/middleware/auth-guard'
 import { logAuditEvent } from '@/lib/utils/audit-logger'
 import { z } from 'zod'
+import { handleApiError } from '@/lib/utils/api-error'
 
 const UpdateSchema = z.object({
   name: z.string().min(1).max(200).optional(),
@@ -53,8 +54,8 @@ export async function GET(
     if (!product) return NextResponse.json({ error: 'Product not found' }, { status: 404 })
 
     return NextResponse.json({ product })
-  } catch {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  } catch (error) {
+    return handleApiError(error, 'admin/products/[id]')
   }
 }
 
@@ -150,7 +151,7 @@ export async function DELETE(
     })
 
     return NextResponse.json({ success: true })
-  } catch {
-    return NextResponse.json({ error: 'Delete failed' }, { status: 500 })
+  } catch (error) {
+    return handleApiError(error, 'admin/products/[id]')
   }
 }

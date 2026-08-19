@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { requireShopOwner } from '@/lib/middleware/auth-guard'
 import { canAddStaff } from '@/lib/middleware/plan-guard'
 import { z } from 'zod'
+import { handleApiError } from '@/lib/utils/api-error'
 
 const InviteStaffSchema = z.object({
   name: z.string().min(1).max(100),
@@ -35,8 +36,8 @@ export async function GET(_req: NextRequest) {
     if (error) throw error
 
     return NextResponse.json({ staff: data })
-  } catch {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  } catch (error) {
+    return handleApiError(error, 'admin/staff')
   }
 }
 

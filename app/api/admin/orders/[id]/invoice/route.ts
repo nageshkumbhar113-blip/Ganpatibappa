@@ -11,7 +11,7 @@ export async function GET(
   try {
     const user = await requireAdmin()
 
-    const hasInvoice = await checkFeature(user.shop_id!, 'pdf_invoice')
+    const hasInvoice = await checkFeature(user.shop_id!, 'invoice_pdf')
     if (!hasInvoice) {
       return NextResponse.json(
         { error: 'PDF Invoice is not available on your current plan.' },

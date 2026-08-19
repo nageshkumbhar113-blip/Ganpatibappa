@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { z } from 'zod'
+import { handleApiError } from '@/lib/utils/api-error'
 
 export const dynamic = 'force-dynamic'
 
@@ -24,8 +25,8 @@ export async function GET(req: NextRequest) {
       .eq('customer_id', authUser!.id)
 
     return NextResponse.json({ wishlist: data ?? [] })
-  } catch {
-    return NextResponse.json({ error: 'Failed to load wishlist' }, { status: 500 })
+  } catch (error) {
+    return handleApiError(error, 'shop/wishlist')
   }
 }
 
@@ -62,7 +63,7 @@ export async function POST(req: NextRequest) {
       })
       return NextResponse.json({ added: true })
     }
-  } catch {
-    return NextResponse.json({ error: 'Failed to update wishlist' }, { status: 500 })
+  } catch (error) {
+    return handleApiError(error, 'shop/wishlist')
   }
 }

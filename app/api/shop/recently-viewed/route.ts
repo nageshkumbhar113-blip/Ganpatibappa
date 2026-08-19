@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { z } from 'zod'
+import { handleApiError } from '@/lib/utils/api-error'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,8 +27,8 @@ export async function GET(req: NextRequest) {
       .limit(20)
 
     return NextResponse.json({ items: data ?? [] })
-  } catch {
-    return NextResponse.json({ error: 'Failed' }, { status: 500 })
+  } catch (error) {
+    return handleApiError(error, 'shop/recently-viewed')
   }
 }
 

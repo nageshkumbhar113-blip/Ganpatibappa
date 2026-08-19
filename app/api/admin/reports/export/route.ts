@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
     const end = new Date(year, month, 0, 23, 59, 59, 999).toISOString()
 
     // Check export permission
-    const hasExport = await checkFeature(user.shop_id!, 'reports_export')
+    const hasExport = await checkFeature(user.shop_id!, 'reports_excel')
     if (!hasExport) {
       return NextResponse.json({ error: 'Reports export requires Basic or Premium plan.' }, { status: 403 })
     }

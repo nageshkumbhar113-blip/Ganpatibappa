@@ -19,7 +19,7 @@ const CampaignSchema = z.object({
 export async function GET() {
   const user = await requireAdmin()
 
-  const allowed = await checkFeature(user.shop_id!, 'festival_campaigns')
+  const allowed = await checkFeature(user.shop_id!, 'campaigns')
   if (!allowed) {
     return NextResponse.json({ error: 'Feature not available on current plan' }, { status: 403 })
   }
@@ -37,7 +37,7 @@ export async function GET() {
 export async function POST(request: Request) {
   const user = await requireAdmin()
 
-  const allowed = await checkFeature(user.shop_id!, 'festival_campaigns')
+  const allowed = await checkFeature(user.shop_id!, 'campaigns')
   if (!allowed) {
     return NextResponse.json({ error: 'Feature not available on current plan' }, { status: 403 })
   }

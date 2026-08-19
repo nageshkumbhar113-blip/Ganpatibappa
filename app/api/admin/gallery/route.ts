@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/middleware/auth-guard'
 import { z } from 'zod'
+import { handleApiError } from '@/lib/utils/api-error'
 
 const GallerySchema = z.object({
   image_url: z.string().url(),
@@ -21,8 +22,8 @@ export async function GET(_req: NextRequest) {
       .order('sort_order', { ascending: true })
 
     return NextResponse.json({ gallery: data ?? [] })
-  } catch {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  } catch (error) {
+    return handleApiError(error, 'admin/gallery')
   }
 }
 
@@ -66,7 +67,7 @@ export async function DELETE(req: NextRequest) {
       .eq('shop_id', user.shop_id!)
 
     return NextResponse.json({ success: true })
-  } catch {
-    return NextResponse.json({ error: 'Failed to delete' }, { status: 500 })
+  } catch (error) {
+    return handleApiError(error, 'admin/gallery')
   }
 }
