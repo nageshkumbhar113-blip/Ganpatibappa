@@ -2,12 +2,44 @@
 
 import { useEffect, useState, useTransition } from 'react'
 import { toast } from 'sonner'
-import { Loader2, Save, Upload } from 'lucide-react'
+import { Loader2, Save, Upload, MapPin } from 'lucide-react'
+import { BannerManager } from '@/components/admin/settings/BannerManager'
 
 export default function SettingsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, startTransition] = useTransition()
   const [isUploading, setIsUploading] = useState(false)
+  const [locating, setLocating] = useState(false)
+  const [locationError, setLocationError] = useState('')
+
+  function captureLocation() {
+    if (!navigator.geolocation) {
+      setLocationError('या browser मध्ये location feature उपलब्ध नाही.')
+      return
+    }
+    setLocationError('')
+    setLocating(true)
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords
+        // A plain Google Maps query URL — no API key needed, opens the pin
+        // directly, and works identically to a manually shared Maps link.
+        const url = `https://www.google.com/maps?q=${latitude},${longitude}`
+        setShop((s) => ({ ...s, maps_url: url }))
+        setLocating(false)
+        toast.success('Location सेट झालं — आता "Save" दाबा')
+      },
+      (err) => {
+        setLocating(false)
+        if (err.code === err.PERMISSION_DENIED) {
+          setLocationError('Location परवानगी नाकारली गेली. Browser settings मध्ये परवानगी द्या आणि पुन्हा प्रयत्न करा.')
+        } else {
+          setLocationError('Location मिळालं नाही. पुन्हा प्रयत्न करा.')
+        }
+      },
+      { enableHighAccuracy: true, timeout: 15000 }
+    )
+  }
 
   const [shop, setShop] = useState({
     name: '',
@@ -181,18 +213,39 @@ export default function SettingsPage() {
 
         <div>
           <label className="text-xs font-medium text-gray-600 block mb-1">
-            Google Maps Location URL
+            दुकानाचं Location
           </label>
-          <input
-            type="url"
-            value={shop.maps_url}
-            onChange={(e) => setShop((s) => ({ ...s, maps_url: e.target.value }))}
-            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
-            placeholder="https://maps.app.goo.gl/..."
-          />
+          {shop.maps_url ? (
+            <div className="flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2">
+              <MapPin className="h-4 w-4 shrink-0 text-green-600" />
+              <span className="flex-1 text-xs font-medium text-green-700">Location सेट केलंय ✅</span>
+              <a href={shop.maps_url} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold text-blue-600 hover:underline">
+                पाहा
+              </a>
+              <button
+                type="button"
+                onClick={captureLocation}
+                disabled={locating}
+                className="text-xs font-semibold text-gray-500 hover:text-gray-700 disabled:opacity-50"
+              >
+                {locating ? '...' : 'पुन्हा सेट करा'}
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={captureLocation}
+              disabled={locating}
+              className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-orange-300 bg-orange-50 px-3 py-2.5 text-sm font-semibold text-orange-600 hover:bg-orange-100 disabled:opacity-50"
+            >
+              <MapPin className="h-4 w-4" />
+              {locating ? 'Location शोधत आहे…' : '📍 सध्याचं Location सेट करा'}
+            </button>
+          )}
+          {locationError && <p className="mt-1 text-[11px] text-red-500">{locationError}</p>}
           <p className="mt-1 text-[11px] text-gray-400">
-            Google Maps मध्ये दुकान शोधा → Share → Copy Link → इथे paste करा.
-            Customers shop page वरून directly navigate करू शकतील.
+            दुकानातूनच हे बटण दाबा — तुमच्या mobile चं GPS location आपोआप घेतलं जाईल.
+            Customers shop page वरून directly तिथे navigate करू शकतील.
           </p>
         </div>
 
@@ -218,9 +271,9 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* Banner */}
+        {/* Banner (single, legacy fallback — shown only when no slideshow banners exist) */}
         <div>
-          <label className="text-xs font-medium text-gray-600 block mb-2">Banner Image</label>
+          <label className="text-xs font-medium text-gray-600 block mb-2">Banner Image (fallback)</label>
           <div className="space-y-2">
             {shop.banner_url && (
               <img src={shop.banner_url} alt="Banner" className="h-24 w-full rounded-lg object-cover border border-gray-100" />
@@ -235,9 +288,15 @@ export default function SettingsPage() {
                 onChange={(e) => e.target.files?.[0] && uploadImage(e.target.files[0], 'banner_url')}
               />
             </label>
+            <p className="text-[11px] text-gray-400">
+              खाली slideshow banners असतील तर तेच दिसतील — हा फक्त slideshow नसेल तेव्हा fallback आहे.
+            </p>
           </div>
         </div>
       </section>
+
+      {/* Home Banners (Slideshow) */}
+      <BannerManager />
 
       {/* Store Settings */}
       <section className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 space-y-4">

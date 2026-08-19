@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { formatCurrency, calculateDiscount } from '@/lib/utils/format'
 import { Search } from 'lucide-react'
+import { HeroCarousel } from '@/components/shop/HeroCarousel'
 
 export const dynamic = 'force-dynamic'
 
@@ -44,18 +45,32 @@ async function getShopCatalog(slug: string, categoryId?: string, q?: string, pag
   const { data: products, count } = await query
   const { data: categories } = await supabase.from('categories').select('id, name, image_url').eq('shop_id', shop.id).eq('is_active', true).order('sort_order')
   const { data: gallery } = await supabase.from('gallery').select('id, image_url, caption').eq('shop_id', shop.id).order('sort_order').limit(20)
-
+  const { data: banners } = await supabase.from('shop_banners').select('id, image_url').eq('shop_id', shop.id).eq('is_active', true).order('sort_order')
 
   return {
     shop,
     products: products ?? [],
     categories: categories ?? [],
     gallery: gallery ?? [],
+    banners: banners ?? [],
     total: count ?? 0,
     totalPages: Math.ceil((count ?? 0) / limit),
   }
 }
 
+// The shop stores a plain "view this pin" Maps link (maps?q=lat,lng, captured
+// from the admin's GPS). For a customer, what matters is turn-by-turn
+// directions from wherever they are — pull the coordinates back out and
+// build a directions URL. Falls back to the stored link as-is for a
+// manually-pasted (non-coordinate) Maps link.
+function getDirectionsUrl(mapsUrl: string): string {
+  const m = mapsUrl.match(/[?&]q=(-?d+.d+),(-?d+.d+)/)
+  if (m) {
+    const [, lat, lng] = m
+    return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`
+  }
+  return mapsUrl
+}
 function getYouTubeId(url: string): string | null {
   try {
     const u = new URL(url)
@@ -70,7 +85,9 @@ export default async function ShopHomePage({ params, searchParams }: Props) {
   const data = await getShopCatalog(params.shopSlug, searchParams.category_id, searchParams.q, page)
   if (!data) notFound()
 
-  const { shop, products, categories, gallery, total, totalPages } = data
+  const { shop, products, categories, gallery, banners, total, totalPages } = data
+  const bannerImages = banners.map((b: any) => b.image_url)
+  const hasCarousel = bannerImages.length > 0
   const settings = (shop.shop_settings as any)?.[0] ?? {}
   const showPrices = settings.show_prices !== false
   const base = `/shop/${params.shopSlug}`
@@ -85,23 +102,26 @@ export default async function ShopHomePage({ params, searchParams }: Props) {
       <div
         className="relative overflow-hidden"
         style={
-          shop.banner_url
+          !hasCarousel && shop.banner_url
             ? { backgroundImage: `url(${shop.banner_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }
             : {}
         }
       >
+        {/* Slideshow (only when the shop has uploaded multiple banners) */}
+        {hasCarousel && <HeroCarousel images={bannerImages} />}
+
         {/* gradient overlay */}
-        <div className={`absolute inset-0 ${shop.banner_url ? 'bg-gradient-to-b from-black/60 via-black/40 to-black/70' : 'bg-gradient-to-br from-orange-700 via-orange-500 to-amber-400'}`} />
+        <div className={`absolute inset-0 ${hasCarousel || shop.banner_url ? 'bg-gradient-to-b from-black/60 via-black/40 to-black/70' : 'bg-gradient-to-br from-orange-700 via-orange-500 to-amber-400'}`} />
 
         {/* decorative circles */}
-        {!shop.banner_url && (
+        {!hasCarousel && !shop.banner_url && (
           <>
             <div className="absolute -top-20 -right-20 h-64 w-64 rounded-full bg-white/5" />
             <div className="absolute -bottom-12 -left-12 h-40 w-40 rounded-full bg-white/5" />
           </>
         )}
 
-        <div className="relative max-w-5xl mx-auto px-4 py-10 sm:py-14 flex flex-col sm:flex-row items-center gap-6">
+        <div className={`relative max-w-5xl mx-auto px-4 py-10 sm:py-14 flex flex-col sm:flex-row items-center gap-6 ${hasCarousel ? 'pb-8 sm:pb-10' : ''}`}>
           {/* Logo */}
           {shop.logo_url ? (
             <img src={shop.logo_url} alt={shop.name} className="h-20 w-20 sm:h-24 sm:w-24 rounded-2xl object-cover shadow-xl border-2 border-white/30 shrink-0" />
@@ -111,7 +131,7 @@ export default async function ShopHomePage({ params, searchParams }: Props) {
 
           <div className="text-center sm:text-left flex-1">
             <p className="text-orange-200 text-xs font-semibold uppercase tracking-widest mb-1">गणपती मूर्ती Online Store</p>
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-white drop-shadow-sm">{shop.name}</h1>
+            <h1 className="text-3xl sm:text-4xl font-black text-white drop-shadow-sm">{shop.name}</h1>
             {settings.about_text && (
               <p className="mt-2 text-white/75 text-sm leading-relaxed line-clamp-2 max-w-md">{settings.about_text}</p>
             )}
@@ -134,17 +154,53 @@ export default async function ShopHomePage({ params, searchParams }: Props) {
               )}
               {mapsUrl && (
                 <a
-                  href={mapsUrl}
+                  href={getDirectionsUrl(mapsUrl)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="rounded-full bg-blue-600 text-white font-bold px-6 py-2.5 text-sm shadow hover:bg-blue-700 transition-colors"
                 >
-                  📍 दुकान शोधा
+                  📍 दुकानाकडे रस्ता
                 </a>
               )}
             </div>
           </div>
         </div>
+      </div>
+
+      {/* ── QUICK ACTIONS ───────────────────────────────────── */}
+      <div className="max-w-5xl mx-auto px-4 pt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {settings.allow_whatsapp_order && wa ? (
+          <a
+            href={`https://wa.me/${wa}?text=नमस्कार! मला Ganesh Murti order करायची आहे.`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-600 to-green-700 p-5 text-white shadow-sm hover:shadow-lg transition-shadow"
+          >
+            <div className="absolute -right-6 -bottom-6 h-24 w-24 rounded-full bg-white/10" />
+            <p className="text-[11px] font-bold uppercase tracking-wider text-white/70">थेट संपर्क</p>
+            <p className="mt-1 text-lg font-black">📞 WhatsApp Order</p>
+            <p className="mt-0.5 text-xs text-white/80">Chat करून लगेच order द्या</p>
+          </a>
+        ) : (
+          <a
+            href="#catalog"
+            className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-gray-800 to-gray-900 p-5 text-white shadow-sm hover:shadow-lg transition-shadow"
+          >
+            <div className="absolute -right-6 -bottom-6 h-24 w-24 rounded-full bg-white/10" />
+            <p className="text-[11px] font-bold uppercase tracking-wider text-white/70">कॅटलॉग</p>
+            <p className="mt-1 text-lg font-black">🛍️ सर्व मूर्ती पाहा</p>
+            <p className="mt-0.5 text-xs text-white/80">Catalog मधून निवडा</p>
+          </a>
+        )}
+        <Link
+          href={`${base}/orders`}
+          className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 p-5 text-white shadow-sm hover:shadow-lg transition-shadow"
+        >
+          <div className="absolute -right-6 -bottom-6 h-24 w-24 rounded-full bg-white/10" />
+          <p className="text-[11px] font-bold uppercase tracking-wider text-white/70">Track करा</p>
+          <p className="mt-1 text-lg font-black">📦 माझी Orders</p>
+          <p className="mt-0.5 text-xs text-white/80">Order status बघा</p>
+        </Link>
       </div>
 
       {/* ── GALLERY SCROLL ───────────────────────────────────── */}
@@ -199,28 +255,51 @@ export default async function ShopHomePage({ params, searchParams }: Props) {
           <span className="text-xs text-gray-400 shrink-0">{total} products</span>
         </div>
 
-        {/* Category Pills */}
+        {/* Categories */}
         {categories.length > 0 && (
-          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-            <Link
-              href={`${base}${searchParams.q ? `?q=${searchParams.q}` : ''}`}
-              className={`shrink-0 rounded-full px-4 py-2 text-xs font-semibold shadow-sm transition-colors ${!searchParams.category_id ? 'bg-orange-500 text-white shadow-orange-200' : 'bg-white border border-gray-200 text-gray-600 hover:border-orange-300'}`}
-            >
-              सर्व
-            </Link>
-            {categories.map((cat: any) => (
-              <Link
-                key={cat.id}
-                href={`${base}?category_id=${cat.id}${searchParams.q ? `&q=${searchParams.q}` : ''}`}
-                className={`shrink-0 rounded-full px-4 py-2 text-xs font-semibold shadow-sm transition-colors ${searchParams.category_id === cat.id ? 'bg-orange-500 text-white shadow-orange-200' : 'bg-white border border-gray-200 text-gray-600 hover:border-orange-300'}`}
-              >
-                {cat.name}
-              </Link>
-            ))}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-black text-gray-900">Category निवडा</h2>
+              {searchParams.category_id && (
+                <Link href={`${base}${searchParams.q ? `?q=${searchParams.q}` : ''}`} className="text-xs font-semibold text-orange-600 hover:underline">
+                  सर्व पाहा
+                </Link>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {categories.map((cat: any, idx: number) => {
+                const palette = [
+                  'from-orange-400 to-amber-500',
+                  'from-blue-500 to-indigo-600',
+                  'from-emerald-500 to-teal-600',
+                  'from-fuchsia-500 to-purple-600',
+                ]
+                const gradient = palette[idx % palette.length]
+                const active = searchParams.category_id === cat.id
+                return (
+                  <Link
+                    key={cat.id}
+                    href={`${base}?category_id=${cat.id}${searchParams.q ? `&q=${searchParams.q}` : ''}`}
+                    className={`group relative overflow-hidden rounded-2xl bg-gradient-to-br ${gradient} p-4 shadow-sm transition-transform hover:scale-[1.02] hover:shadow-lg ${active ? 'ring-4 ring-offset-2 ring-orange-300' : ''}`}
+                  >
+                    <div className="absolute -right-4 -bottom-4 h-16 w-16 rounded-full bg-white/10" />
+                    {cat.image_url ? (
+                      <img src={cat.image_url} alt="" className="h-8 w-8 rounded-lg object-cover mb-2 shadow" />
+                    ) : (
+                      <div className="text-2xl mb-2">🙏</div>
+                    )}
+                    <p className="relative text-sm font-extrabold text-white leading-tight">{cat.name}</p>
+                  </Link>
+                )
+              })}
+            </div>
           </div>
         )}
 
         {/* Product Grid */}
+        <h2 className="text-lg font-black text-gray-900">
+          {searchParams.q ? `"${searchParams.q}" चे निकाल` : searchParams.category_id ? (categories.find((c: any) => c.id === searchParams.category_id)?.name ?? 'Products') : 'आमची मूर्ती संग्रह'}
+        </h2>
         {!products.length ? (
           <div className="text-center py-20 text-gray-400 space-y-3">
             <div className="text-6xl">🙏</div>
@@ -317,27 +396,27 @@ export default async function ShopHomePage({ params, searchParams }: Props) {
       </div>
 
       {/* ── FOOTER ───────────────────────────────────────────── */}
-      <footer className="border-t border-gray-100 bg-white mt-8 py-8 text-center space-y-1.5">
-        <p className="text-sm font-semibold text-gray-700">🙏 {shop.name}</p>
+      <footer className="bg-[#17212b] mt-10 py-10 text-center space-y-2">
+        <p className="text-base font-black text-white">🙏 {shop.name}</p>
         {shop.whatsapp && (
-          <a href={`https://wa.me/${wa}`} className="text-xs text-green-600 hover:underline block">
+          <a href={`https://wa.me/${wa}`} className="text-xs text-emerald-400 hover:underline block font-medium">
             📞 WhatsApp: {shop.whatsapp}
           </a>
         )}
         {(shop as any).address && (
-          <p className="text-xs text-gray-500">📍 {(shop as any).address}</p>
+          <p className="text-xs text-white/60">📍 {(shop as any).address}</p>
         )}
         {mapsUrl && (
           <a
-            href={mapsUrl}
+            href={getDirectionsUrl(mapsUrl)}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-block text-xs text-blue-600 hover:underline font-medium"
+            className="inline-block text-xs text-blue-400 hover:underline font-semibold"
           >
-            🗺️ Google Maps वर दिशा पाहा
+            🗺️ दुकानाकडे रस्ता दाखवा
           </a>
         )}
-        <p className="text-[11px] text-gray-400 pt-1">Powered by GanpatiBappa Platform</p>
+        <p className="text-[11px] text-white/30 pt-2">Powered by GanpatiBappa Platform</p>
       </footer>
 
       {/* ── FLOATING WHATSAPP ────────────────────────────────── */}

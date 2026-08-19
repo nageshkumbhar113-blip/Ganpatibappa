@@ -9,6 +9,20 @@ import { formatCurrency, calculateDiscount } from '@/lib/utils/format'
 import { useCart } from '@/lib/hooks/useCart'
 import { useShop } from '@/lib/contexts/shop-context'
 
+// The shop stores a plain "view this pin" Maps link (maps?q=lat,lng, captured
+// from the admin's GPS). For a customer, what matters is turn-by-turn
+// directions from wherever they are, not just seeing the pin — so pull the
+// coordinates back out and build a directions URL. Falls back to opening the
+// stored link as-is for a manually-pasted (non-coordinate) Maps link.
+function getDirectionsUrl(mapsUrl: string): string {
+  const m = mapsUrl.match(/[?&]q=(-?d+.d+),(-?d+.d+)/)
+  if (m) {
+    const [, lat, lng] = m
+    return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`
+  }
+  return mapsUrl
+}
+
 export default function ProductDetailPage() {
   const params = useParams<{ shopSlug: string; slug: string }>()
   const router = useRouter()
@@ -176,13 +190,13 @@ export default function ProductDetailPage() {
             )}
             {shop?.maps_url && (
               <a
-                href={shop.maps_url}
+                href={getDirectionsUrl(shop.maps_url)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 rounded-xl border-2 border-blue-500 py-3 text-sm font-semibold text-blue-600 hover:bg-blue-50 transition-colors"
               >
                 <MapPin className="h-4 w-4" />
-                मूर्ती प्रत्यक्ष पाहा — दुकानाचा पत्ता
+                दुकानाकडे जायचा रस्ता दाखवा
               </a>
             )}
             {shop?.address && (
