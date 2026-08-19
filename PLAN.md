@@ -1603,3 +1603,67 @@ the Super Admin list and dashboard counts.
 | B16 | Shop creation set `status: 'trial'` whenever `duration_days === 14`, which would mislabel any 14-day paid plan | New shops are always `active` |
 | B17 | Two more server components ran several Supabase queries via `Promise.all` — the same pattern behind the "0 products" bug | `lib/utils/sequential.ts`; client-side `fetch` concurrency left alone, it is unaffected |
 | B18 | Dashboard "Trial Shops" tile meaningless after the trial was retired | Replaced with Expired Subscriptions |
+
+---
+
+# 🔬 DEEP CHECK — 2026-08-19 (fresh-shop, senior pass)
+
+Built a brand-new shop (`fresh-test-shop`) from zero and verified every layer for
+real, end-to-end, with no manual shortcuts — this is what a new paying customer
+will actually experience.
+
+## ✅ Verified working, end-to-end, on a shop that started with nothing
+- Shop creation → owner login → empty admin panel, zero cross-shop data leakage
+- Cloudinary: refused before setup (clear message), connected instantly after
+  owner saves credentials — **no redeploy/wait needed** (today's cache fix holds)
+- Category → Product (with photo) → appears on the **live storefront
+  immediately**, zero delay
+- Full customer order: Cart → Checkout → **Cash payment** → real order number,
+  `payment_status` correctly `pending` (never client-settable)
+- Order appears in admin instantly
+- 28/28 admin pages, 7/7 super-admin pages, 7/7 storefront pages, all real
+  APIs — clean
+
+## 🔴 NEW CRITICAL BUG FOUND AND FIXED — staff could never log in
+**Every staff member ever invited on this platform has been unable to open
+the admin panel they were invited to.**
+
+Root cause: `on_auth_user_created` (a DB trigger, 001_core_tables.sql) fires
+the instant an auth account is created and inserts a placeholder
+`public.users` row — `role` defaulted to `'customer'`, `shop_id` left `null`.
+`/api/admin/staff`'s invite handler then did a plain `.insert()` with the
+real `role: 'staff'` + `shop_id`, which collided with that row's primary key,
+**failed, and the error was never checked** — so every invited staff account
+was silently left as a customer with no shop, and `requireAdmin()` rejected
+them at the door.
+
+The exact same bug existed in the shop-clone route. Owner creation
+(`super-admin/shops/route.ts`) already had a comment explaining this and used
+`.upsert(..., {onConflict:'id'})` to win instead of losing the conflict —
+applied that same fix to both broken routes, and made both now throw loudly
+(and roll back the orphaned auth user) if the upsert itself fails, instead of
+swallowing the error a second time.
+
+**Verified twice**, independently:
+1. Manually repaired the two staff accounts created before the fix — both now
+   log in and reach the dashboard.
+2. Invited a **brand-new** staff member entirely through the fixed code path,
+   no manual repair — logged straight into `/admin` with `role: staff`,
+   correct `shop_id`, correct `name` in one shot.
+
+## 🟡 Also found and fixed this pass
+- Staff invite form sent `full_name`/`role:'staff'`/wrong permission-checkbox
+  keys; none of it matched the API's schema (`name`, `role: manager|employee`,
+  and 7 specific permission keys). Every invite from the UI has always
+  either 400'd outright or silently saved zero permissions. Rebuilt the form
+  to match the API exactly and added an actual role picker (there was none).
+- Staff list table read `member.users?.full_name` — the API returns `.name`.
+  Every existing staff member's name has rendered blank in this list; fixed.
+- Cloudinary onboarding guide's "Step 4: create an Unsigned upload preset" is
+  dead instruction — the real upload path is fully signed and never reads a
+  preset. Removed the step and the unused form field.
+
+## 🔓 Decision applied (per your instruction, made independently)
+Cloudinary stays owner-configures-it-themselves (no auto-connect) — confirmed
+this has **no missing technical step**: 3 credentials, Save, done, works
+immediately. The only real gap was the misleading Step 4 above, now removed.
