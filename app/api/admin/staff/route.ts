@@ -79,8 +79,15 @@ export async function POST(req: NextRequest) {
       throw authError
     }
 
-    // Create user profile as 'staff' role
-    await supabase.from('users').insert({
+    // Create user profile as 'staff' role.
+    // upsert, not insert: the on_auth_user_created trigger (001_core_tables.sql)
+    // already inserted a placeholder row the instant createUser() ran above,
+    // with role defaulted to 'customer' and shop_id left null. A plain insert()
+    // here hits that row's primary key, fails silently (its error was never
+    // checked), and leaves every invited staff member permanently unable to
+    // pass requireAdmin() — the exact bug super-admin/shops/route.ts's owner
+    // creation already works around the same way.
+    const { error: userError } = await supabase.from('users').upsert({
       id: authData.user.id,
       email,
       name,
@@ -88,7 +95,12 @@ export async function POST(req: NextRequest) {
       role: 'staff',
       shop_id: user.shop_id!,
       is_active: true,
-    })
+    }, { onConflict: 'id' })
+
+    if (userError) {
+      await supabase.auth.admin.deleteUser(authData.user.id)
+      throw userError
+    }
 
     // Create staff record with permissions
     const { data: staffRecord, error: staffError } = await supabase

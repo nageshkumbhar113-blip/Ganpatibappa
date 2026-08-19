@@ -81,15 +81,24 @@ export async function POST(
       throw shopError
     }
 
-    // Create user profile
-    await supabase.from('users').insert({
+    // Create user profile — upsert, not insert: on_auth_user_created already
+    // placed a row for this id the instant createUser() ran, with role
+    // defaulted to 'customer'. See app/api/admin/staff/route.ts for the full
+    // explanation of why a plain insert() here silently leaves the account
+    // unable to log in as admin.
+    const { error: userError } = await supabase.from('users').upsert({
       id: authData.user.id,
       email: ownerEmail,
       name: ownerName,
       role: 'admin',
       shop_id: newShop.id,
       is_active: true,
-    })
+    }, { onConflict: 'id' })
+
+    if (userError) {
+      await supabase.auth.admin.deleteUser(authData.user.id)
+      throw userError
+    }
 
     // Create subscription
     const { data: plan } = await supabase
