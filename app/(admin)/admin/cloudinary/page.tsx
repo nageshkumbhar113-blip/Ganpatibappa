@@ -43,17 +43,12 @@ const STEPS = [
   },
   {
     icon: '4️⃣',
-    title: 'Upload Preset बनवा',
+    title: 'खाली टाका आणि Save करा',
     color: 'green',
     items: [
-      '⚙️ Settings → "Upload" tab वर जा',
-      '"Upload presets" section scroll करा',
-      '"Add upload preset" button click करा',
-      'Preset name: ganpatibappa_uploads',
-      'Signing Mode: Unsigned निवडा ⚠️ (महत्त्वाचे!)',
-      'Save करा',
+      'वरचे तिन्ही (Cloud Name, API Key, API Secret) खालच्या form मध्ये paste करा',
+      '"Save" दाबा — लगेच active होईल, फोटो अपलोड करून बघा',
     ],
-    path: '⚙️ Settings → Upload → Upload presets → Add',
   },
 ]
 
@@ -244,7 +239,6 @@ export default function CloudinaryPage() {
             { label: 'Cloud Name', key: 'cloud_name', placeholder: 'your-cloud-name', hint: 'Dashboard → Product Environment मध्ये दिसेल' },
             { label: 'API Key', key: 'api_key', placeholder: '123456789012345', hint: 'Settings → API Keys मध्ये दिसेल' },
             { label: 'API Secret', key: 'api_secret', placeholder: '••••••••••••••', hint: 'API Key जवळ 👁️ click करा' },
-            { label: 'Upload Preset', key: 'upload_preset', placeholder: 'ganpatibappa_uploads', hint: 'Settings → Upload मध्ये बनवा (Unsigned mode)' },
           ].map(({ label, key, placeholder, hint }) => (
             <div key={key}>
               <label className="text-xs font-semibold text-gray-700 block mb-1">{label}</label>
