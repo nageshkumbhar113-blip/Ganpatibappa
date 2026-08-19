@@ -19,6 +19,7 @@
 
 import { type NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
+import { createAdminClient } from '@/lib/supabase/admin'
 import {
   isPlatformDomain,
   getSubdomain,
@@ -73,12 +74,22 @@ export async function middleware(request: NextRequest) {
   // Build a lightweight session-like object so the rest of the middleware can stay unchanged
   const session = authUser ? { user: authUser } : null
 
+  // Every shop existence/status lookup below (path-based, subdomain, custom
+  // domain) must use a service-role client, not the anon-key `supabase`
+  // above. shops_public_read_active's RLS policy is `USING (status =
+  // 'active')` — an anonymous visitor's SELECT for a suspended or deleted
+  // shop returns zero rows, not a row with that status, so `!shop` was
+  // always true and every `shop.status === 'suspended'` / `'deleted'`
+  // check below was dead code. A suspended shop showed a bare "shop not
+  // found" 404 instead of the intended "temporarily unavailable" message.
+  const shopLookup = createAdminClient()
+
   // ── PATH-BASED SHOP ROUTES: /shop/[shopSlug]/* ──────────────
   // Handles free-tier path routing without needing a custom domain
   if (isPlatformDomain(hostname) && pathname.startsWith('/shop/')) {
     const shopSlug = pathname.split('/')[2]
     if (shopSlug) {
-      const { data: shop } = await supabase
+      const { data: shop } = await shopLookup
         .from('shops')
         .select('id, slug, status')
         .eq('slug', shopSlug)
@@ -106,13 +117,17 @@ export async function middleware(request: NextRequest) {
   if (isPlatformDomain(hostname) && pathname.startsWith('/api/shop/')) {
     const slugFromHeader = request.headers.get('x-shop-slug')
     if (slugFromHeader) {
-      const { data: shop } = await supabase
+      const { data: shop } = await shopLookup
         .from('shops')
-        .select('id')
+        .select('id, status')
         .eq('slug', slugFromHeader)
         .single()
 
-      if (shop) {
+      // A suspended/deleted shop's storefront APIs should keep failing
+      // (no x-shop-id set, same as "not found") — only the RLS blind spot
+      // that made even *active* shops occasionally look up empty is what
+      // needed fixing here.
+      if (shop && shop.status === 'active') {
         const reqHeaders = new Headers(request.headers)
         reqHeaders.set('x-shop-id', shop.id)
         return NextResponse.next({ request: { headers: reqHeaders } })
@@ -217,7 +232,7 @@ export async function middleware(request: NextRequest) {
 
   if (subdomain) {
     // ── Subdomain lookup ─────────────────────────────────────
-    const { data: shop } = await supabase
+    const { data: shop } = await shopLookup
       .from('shops')
       .select('id, slug, status')
       .eq('subdomain', subdomain)
@@ -237,7 +252,7 @@ export async function middleware(request: NextRequest) {
     shopSlug = shop.slug
   } else if (isCustomDomain(hostname)) {
     // ── Custom domain lookup ──────────────────────────────────
-    const { data: mapping } = await supabase
+    const { data: mapping } = await shopLookup
       .from('domain_mappings')
       .select('shop_id, shops!inner(id, slug, status)')
       .eq('domain', hostname)
