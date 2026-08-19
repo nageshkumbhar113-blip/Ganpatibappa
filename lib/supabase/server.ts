@@ -24,6 +24,12 @@ export function createClient() {
           }
         },
       },
+      global: {
+        // See lib/supabase/admin.ts — Next.js's fetch patching has been
+        // observed to serve a stale cached row for a plain server-side
+        // query even under `dynamic = 'force-dynamic'`. Force fresh data.
+        fetch: (input, init) => fetch(input, { ...init, cache: 'no-store' }),
+      },
     }
   )
 }

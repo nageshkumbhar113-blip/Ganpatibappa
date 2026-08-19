@@ -94,7 +94,6 @@ export default async function ShopHomePage({ params, searchParams }: Props) {
   const wa = shop.whatsapp?.replace(/\D/g, '')
   const mapsUrl = (shop as any).maps_url as string | null | undefined
   const youtubeId = settings.youtube_url ? getYouTubeId(settings.youtube_url) : null
-  const _dbg = `MAPSDBG|${JSON.stringify(mapsUrl)}|${JSON.stringify(Object.keys(shop))}|${JSON.stringify((shop as any).maps_url)}`
 
   return (
     <div className="min-h-screen bg-[#fafaf9]">
@@ -235,7 +234,6 @@ export default async function ShopHomePage({ params, searchParams }: Props) {
       )}
 
       {/* ── CATALOG ──────────────────────────────────────────── */}
-      <pre style={{fontSize:10,background:'yellow',padding:8,wordBreak:'break-all'}}>{_dbg}</pre>
       <div id="catalog" className="max-w-5xl mx-auto px-4 py-8 space-y-6">
 
 
