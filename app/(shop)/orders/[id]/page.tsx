@@ -1,7 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin'
-import { createClient } from '@/lib/supabase/server'
 import { headers } from 'next/headers'
-import { notFound, redirect } from 'next/navigation'
+import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronLeft, Phone, MapPin, Calendar } from 'lucide-react'
 import {
@@ -14,12 +13,16 @@ const STATUS_STEPS = ['pending', 'confirmed', 'in_production', 'ready', 'deliver
 
 export default async function OrderDetailPage({ params }: { params: { id: string } }) {
   const shopId = headers().get('x-shop-id')
-  if (!shopId) redirect('/login')
+  if (!shopId) notFound()
 
-  const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
-
+  // No login gate: there is no customer signup/login anywhere in this app,
+  // so every single guest order used to redirect here straight into
+  // `/login` and dead-end — the customer never saw their own order
+  // confirmation, order number, or payment status. The order's id (a
+  // random UUID, not the sequential order_number) is unguessable and only
+  // ever handed to the customer who placed it, so it doubles as the access
+  // token — the same trust model Shopify/Stripe guest checkout confirmation
+  // pages use.
   const admin = createAdminClient()
   const { data: order } = await admin
     .from('orders')
@@ -32,7 +35,6 @@ export default async function OrderDetailPage({ params }: { params: { id: string
 
   if (!order) notFound()
 
-  // Only show to owner (either the placing user or if unauthenticated order, allow if phone matches — skip for now)
   const currentStep = STATUS_STEPS.indexOf(order.status)
 
   return (
