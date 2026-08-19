@@ -1543,3 +1543,63 @@ Verified live on the trial test shop:
 All four embedded joins confirmed working against production:
 `staff`, `audit_logs`, `login_history`, `reviews` → `users(...)`.
 Staff, Security (audit log + login history) and Reviews are unblocked.
+
+---
+
+# 📌 PRODUCT MODEL — decided 2026-08-19
+
+## Single plan: Premium only
+
+| Plan | Status |
+|---|---|
+| **Premium ₹2499/mo** | ✅ the only plan on sale |
+| Basic ₹999 | 🚫 retired (`is_active = false`) |
+| Free Trial | 🚫 retired (`is_active = false`) |
+
+Retired plans stay in `subscription_plans` so existing subscriptions keep
+resolving, but the Create Shop wizard filters on `is_active` and can never
+offer them again.
+
+**No self-serve signup.** Super Admin creates each shop directly on Premium
+after payment. Since Premium enables every feature, plan-gating is effectively
+inert — one less thing to get wrong.
+
+## Cloudinary
+
+Each shop uses **its own** Cloudinary account, entered under Media Storage.
+
+**Deliberate exception — customer-side uploads never fail.** The checkout
+payment screenshot goes through the same Cloudinary path. If a shop has not yet
+connected its account, that upload falls back to the platform account instead
+of being refused, so a vendor's incomplete setup can never stop its own
+customers from placing orders. Deleting images is exempt for the same reason.
+
+`PLATFORM_IMAGE_LIMIT = 4` in `lib/cloudinary/quota.ts` still caps vendor
+uploads for any plan with `cloudinary_own = false`. No plan on sale has that
+today, so it is dormant — kept as the correct behaviour if a free tier ever
+returns.
+
+## Live shops
+
+| Shop | Purpose | Login |
+|---|---|---|
+| `/shop/shree-arts` | **Admin's own shop** — also the main test shop | `shreearts@ganpatibappa.in` |
+| `/shop/qa-test-shop-819` | QA scratch shop | `qa-test-819@ganpatibappa.in` |
+
+Both are on Premium with the platform Cloudinary credentials entered as their
+own. The three abandoned shops (`shri-arts`, `chintamani-arts`,
+`chintamaniarts`) were soft-deleted — reversible, and now correctly hidden from
+the Super Admin list and dashboard counts.
+
+---
+
+## 🔧 ADDITIONAL FIXES (same session, after the first sweep)
+
+| # | Issue | Fix |
+|---|---|---|
+| B13 | **Reports crashed on every load** — the page sends `?year=2026&month=8`, the route parsed only `?month=2026-08`, producing `year=8, month=NaN` → "Invalid time value" | Accepts both shapes, validates the range |
+| B14 | `testCloudinaryConnection()` / `getCloudinaryUsage()` broke when the old credential getter was removed | Repointed at `getOwnCredentials()`, which has no platform fallback — reporting usage against the shared account would have shown the platform owner's aggregate usage to an unrelated vendor |
+| B15 | Deleting a shop appeared to do nothing — soft-deleted shops still appeared in the Super Admin list and dashboard counts | Both exclude `status = 'deleted'` |
+| B16 | Shop creation set `status: 'trial'` whenever `duration_days === 14`, which would mislabel any 14-day paid plan | New shops are always `active` |
+| B17 | Two more server components ran several Supabase queries via `Promise.all` — the same pattern behind the "0 products" bug | `lib/utils/sequential.ts`; client-side `fetch` concurrency left alone, it is unaffected |
+| B18 | Dashboard "Trial Shops" tile meaningless after the trial was retired | Replaced with Expired Subscriptions |
