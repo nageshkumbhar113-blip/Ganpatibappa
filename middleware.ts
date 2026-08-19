@@ -301,7 +301,7 @@ function shopNotFound(message: string): NextResponse {
     </body></html>`,
     {
       status: 404,
-      headers: { 'Content-Type': 'text/html' },
+      headers: { 'Content-Type': 'text/html; charset=utf-8' },
     }
   )
 }
@@ -315,7 +315,7 @@ function shopSuspended(slug: string): NextResponse {
     </body></html>`,
     {
       status: 503,
-      headers: { 'Content-Type': 'text/html' },
+      headers: { 'Content-Type': 'text/html; charset=utf-8' },
     }
   )
 }

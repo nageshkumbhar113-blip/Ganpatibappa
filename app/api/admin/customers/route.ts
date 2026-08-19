@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/middleware/auth-guard'
 import { NextResponse } from 'next/server'
+import { sanitizeSearchTerm } from '@/lib/utils/search-filter'
 
 export async function GET(request: Request) {
   const user = await requireAdmin()
@@ -21,7 +22,8 @@ export async function GET(request: Request) {
     .range(from, from + limit - 1)
 
   if (search) {
-    query = query.or(`name.ilike.%${search}%,phone.ilike.%${search}%,email.ilike.%${search}%`)
+    const safeSearch = sanitizeSearchTerm(search)
+    query = query.or(`name.ilike.%${safeSearch}%,phone.ilike.%${safeSearch}%,email.ilike.%${safeSearch}%`)
   }
 
   const { data, count, error } = await query

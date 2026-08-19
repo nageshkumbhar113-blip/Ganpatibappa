@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireSuperAdmin } from '@/lib/middleware/auth-guard'
 import { handleApiError } from '@/lib/utils/api-error'
+import { sanitizeSearchTerm } from '@/lib/utils/search-filter'
 
 export async function GET(req: NextRequest) {
   try {
@@ -25,7 +26,10 @@ export async function GET(req: NextRequest) {
       .range(offset, offset + limit - 1)
 
     if (action) query = query.eq('action', action)
-    if (q) query = query.or(`action.ilike.%${q}%,table_name.ilike.%${q}%,ip_address.ilike.%${q}%`)
+    if (q) {
+      const safeQ = sanitizeSearchTerm(q)
+      query = query.or(`action.ilike.%${safeQ}%,table_name.ilike.%${safeQ}%,ip_address.ilike.%${safeQ}%`)
+    }
 
     const { data, count, error } = await query
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })

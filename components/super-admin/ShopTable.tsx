@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { MoreHorizontal, Eye, Edit, Copy, Trash2 } from 'lucide-react'
 import { SubscriptionBadge } from './SubscriptionBadge'
 import { ShopStatusToggle } from './ShopStatusToggle'
@@ -26,6 +27,31 @@ interface ShopTableProps {
 
 export function ShopTable({ shops }: ShopTableProps) {
   const [openMenu, setOpenMenu] = useState<string | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<Shop | null>(null)
+  const [confirmText, setConfirmText] = useState('')
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const router = useRouter()
+
+  async function handleDelete() {
+    if (!pendingDelete || confirmText !== pendingDelete.slug) return
+    setDeleting(true)
+    setDeleteError(null)
+    try {
+      const res = await fetch(`/api/super-admin/shops/${pendingDelete.id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const body = await res.json().catch(() => null)
+        throw new Error(body?.message ?? body?.error ?? `Delete failed (${res.status})`)
+      }
+      setPendingDelete(null)
+      setConfirmText('')
+      router.refresh()
+    } catch (e) {
+      setDeleteError(e instanceof Error ? e.message : 'Delete failed')
+    } finally {
+      setDeleting(false)
+    }
+  }
 
   if (shops.length === 0) {
     return (
@@ -42,6 +68,7 @@ export function ShopTable({ shops }: ShopTableProps) {
   }
 
   return (
+    <>
     <div className="overflow-x-auto">
       <table className="min-w-full divide-y divide-gray-100 text-sm">
         <thead className="bg-gray-50">
@@ -142,7 +169,9 @@ export function ShopTable({ shops }: ShopTableProps) {
                           className="flex w-full items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50"
                           onClick={() => {
                             setOpenMenu(null)
-                            // TODO: delete confirmation modal
+                            setConfirmText('')
+                            setDeleteError(null)
+                            setPendingDelete(shop)
                           }}
                         >
                           <Trash2 className="h-4 w-4" /> Delete
@@ -157,5 +186,46 @@ export function ShopTable({ shops }: ShopTableProps) {
         </tbody>
       </table>
     </div>
+
+      {pendingDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+            <h3 className="text-lg font-bold text-gray-900">Delete this shop?</h3>
+            <p className="mt-2 text-sm text-gray-600">
+              <strong>{pendingDelete.name}</strong> will be marked deleted and its storefront
+              will stop serving customers. Its data is retained, but this is not reversible
+              from this screen.
+            </p>
+            <p className="mt-4 text-sm text-gray-700">
+              Type <code className="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-xs">{pendingDelete.slug}</code> to confirm:
+            </p>
+            <input
+              autoFocus
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.target.value)}
+              className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-100"
+              placeholder={pendingDelete.slug}
+            />
+            {deleteError && <p className="mt-2 text-sm text-red-600">{deleteError}</p>}
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                onClick={() => { setPendingDelete(null); setConfirmText(''); setDeleteError(null) }}
+                disabled={deleting}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleting || confirmText !== pendingDelete.slug}
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {deleting ? 'Deleting…' : 'Delete shop'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   )
 }

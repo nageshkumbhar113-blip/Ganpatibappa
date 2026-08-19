@@ -1349,3 +1349,150 @@ Test shop मध्ये सध्या: 1 category (Ganesh Idols), 2 products
 ---
 
 *QA session: 2026-08-18/19 — Playwright live browser testing*
+
+---
+
+# 🧪 QA SESSION — 2026-08-19 (Live Testing + Full Bug Sweep)
+
+Tested against production with a real throwaway shop created end-to-end through
+the Super Admin wizard, then driven by an automated browser sweep across
+**28 admin pages + 7 super-admin pages + 7 storefront pages + 27 API endpoints**.
+
+| Field | Value |
+|---|---|
+| Storefront | /shop/qa-test-shop-819 |
+| Owner login | qa-test-819@ganpatibappa.in |
+| Plan | Free Trial |
+| Seeded | 1 category, 2 products (1 with image) |
+
+---
+
+## ✅ FIXED THIS SESSION
+
+### Security
+| # | Issue | Fix |
+|---|---|---|
+| S1 | Super Admin password committed in se.txt + PLAN.md, pushed to a **public** GitHub repo | Password rotated; both files redacted |
+| S2 | **service_role key hardcoded in run-migrations.mjs** on a public repo — full DB read/write/delete for anyone who found it | Legacy JWT keys disabled in Supabase; new publishable/secret keys issued; script now reads .env.local; **old key verified dead (401)** |
+| S3 | Orders self-reported as paid from a client-supplied advance_amount | Orders always created pending; only an authenticated admin PATCH can mark paid |
+| S4 | Next.js 14.2.15 critical middleware auth-bypass CVE | Upgraded to 14.2.35 |
+| S5 | Rate limiting was a silent no-op (Upstash unset) | Upstash Redis connected; login / 2FA / order limits now live |
+| S6 | Search terms interpolated raw into PostgREST .or() filters | lib/utils/search-filter.ts sanitiser applied to all 3 call sites |
+
+### Correctness
+| # | Issue | Root cause | Fix |
+|---|---|---|---|
+| B1 | **Storefronts intermittently showed 0 products** despite active products | Concurrent Promise.all() Supabase queries in one serverless invocation intermittently returned an empty result with **no error** | Sequential awaits in all catalog pages, both route trees |
+| B2 | **Image upload broken sitewide** (products, gallery, logo, banner, QR) | CSP connect-src did not allow api.cloudinary.com; Vercel CLOUDINARY_* vars also corrupted | CSP updated; all three vars re-set clean |
+| B3 | **Campaigns, Invoice PDF, Excel export and 2FA unusable on _every_ plan incl. Premium** | checkFeature() called with keys absent from subscription_plans.features, so it always returned false | festival_campaigns→campaigns, pdf_invoice→invoice_pdf, reports_export→reports_excel, two_factor_auth→two_fa |
+| B4 | Staff, Security→Audit Logs, Security→Login History returned **401 Unauthorized** to a correctly logged-in admin | staff/audit_logs/login_history/reviews reference auth.users, but routes embed users(...) which PostgREST resolves against public.users → PGRST200 | Migration 013 adds the missing FKs |
+| B5 | Reviews page 500 | Route selected reviewer_name; the column is customer_name | Route + page corrected |
+| B6 | **Every** API failure surfaced as 401 Unauthorized, masking the real error (this is why B4/B5 were so hard to find) | 40 blind catch blocks across 28 routes | lib/utils/api-error.ts — auth redirect → 401, real fault → 500 with the actual message |
+| B7 | Add to Cart threw on platform-domain product pages | addItem() called without its shopSlug argument | Argument passed |
+| B8 | Checkout with **Cash** failed at the DB | orders.payment_method CHECK constraint never allowed cash | Migration 011 |
+| B9 | Cloudinary storage usage never recorded | increment_cloudinary_storage() RPC was never created | Migration 012 |
+| B10 | Reply-to header silently dropped on all email | Resend expects replyTo, code sent reply_to | Corrected |
+| B11 | Super Admin **Delete shop button did nothing** (dead button, TODO left in place) | Never implemented | Type-the-slug-to-confirm modal wired to the existing DELETE API |
+| B12 | Suspended-shop page showed mojibake instead of the emoji | middleware HTML responses sent without charset | Content-Type now text/html; charset=utf-8 |
+
+---
+
+## ⛔ ONE MANUAL STEP REMAINS
+
+**Run migration 013 in Supabase → SQL Editor** (`supabase/migrations/013_fix_user_foreign_keys.sql`).
+DDL cannot be applied through the REST API, so this is the only step that needs a human.
+Until it runs, **Staff / Security / Reviews stay broken**. Everything else is deployed.
+
+---
+
+## 🔓 OPEN DECISION — Cloudinary strictness
+
+Requested: each shop uses **its own** Cloudinary; drop the shared platform fallback.
+
+⚠️ Settle this conflict first: `subscription_plans.features.cloudinary_own` is
+**false on Trial** and true on Basic/Premium — the plans were designed around trial
+shops using the platform account. Going strict today means a **trial shop cannot
+upload a single image**, which likely kills trial-to-paid conversion.
+
+- **(a)** Strict only where the plan allows own-Cloudinary; trial keeps the shared account *(recommended — matches the existing plan design)*
+- **(b)** Fully strict; set `cloudinary_own = true` on trial so trial shops can add their own credentials
+- **(c)** Fully strict; no image uploads at all on trial
+
+The patch for (b)/(c) is written and ready to re-apply.
+
+---
+
+## 📋 FULL TESTING CHECKLIST — every sidebar option
+
+Legend: ✅ verified · ⚠️ works with issues · ❌ broken · ⬜ still needs a hands-on functional test
+Page-load status below is from the automated sweep. ⬜ items need real create/edit/delete testing.
+
+### CATALOG
+| Option | Loads | Still to test |
+|---|---|---|
+| Products | ✅ | ⬜ create · edit · duplicate · delete · search · plan limit (10 on trial) |
+| Import Products | ✅ | ⬜ upload .xlsx · bad-file error · Basic+ only |
+| Export Products | ✅ | ⬜ download .xlsx · verify contents |
+| Categories | ✅ create verified | ⬜ edit · delete · sort order · image |
+| Gallery | ✅ | ⬜ multi-upload · delete · reorder · storefront reflects it |
+
+### SALES
+| Option | Loads | Still to test |
+|---|---|---|
+| Orders | ✅ | ⬜ place a real order · status transitions · **confirm payment cannot self-mark paid** · invoice PDF |
+| Quotations | ⚠️ 403 on trial (correct) | ⬜ retest on Basic/Premium after B3 · create · PDF |
+| Customers | ✅ | ⬜ list after a real order · spend totals · search |
+| Reviews | ❌ needs 013 | ⬜ submit from storefront · approve · delete |
+| Inquiries | ✅ | ⬜ submit from contact form · appears here |
+
+### MARKETING
+| Option | Loads | Still to test |
+|---|---|---|
+| Campaigns | ⚠️ 403 | ⬜ retest on Premium after B3 · create · send |
+| Notifications | ✅ | ⬜ needs Firebase FCM wired · send push · Premium only |
+| SEO & Marketing | ✅ | ⬜ GA / Pixel / OG image / robots.txt · verify in page source |
+
+### ANALYTICS
+| Option | Loads | Still to test |
+|---|---|---|
+| Reports | ⚠️ 401 | ⬜ retest after B6 · revenue after a real order |
+| Top Products | ✅ | ⬜ verify ranking with real order data |
+| Top Customers | ✅ | ⬜ verify ranking with real order data |
+
+### ACCOUNT
+| Option | Loads | Still to test |
+|---|---|---|
+| Staff | ❌ needs 013 | ⬜ invite · permissions enforced · edit · delete · plan limit |
+| Media Storage | ✅ | ⬜ save own Cloudinary creds · test connection · usage counter (B9) |
+| Security | ❌ needs 013 | ⬜ audit log records actions · login history · IP restrictions |
+| 2FA Setup | ✅ | ⬜ enable · verify code · disable · Premium only (B3) |
+| Settings | ✅ | ⬜ shop info · logo · banner · maps URL · save persists |
+| Theme & Colors | ✅ | ⬜ change colors · storefront reflects it |
+| Payment Settings | ✅ | ⬜ UPI ID · QR upload · bank details · appear at checkout |
+| Domain | ✅ | ⬜ **never tested end-to-end** — needs a real domain |
+| Subscription | ✅ | ⬜ plan display · expiry · upgrade path |
+
+### CUSTOMER STOREFRONT
+| Page | Status | Still to test |
+|---|---|---|
+| Home | ✅ B1 fixed | ⬜ hero · categories · search · gallery |
+| Products / detail | ✅ both products render | ⬜ filters · pagination · Add to Cart (B7) · WhatsApp order |
+| Cart → Checkout | ✅ renders | ⬜ **full order placement** · Cash (B8) · UPI · screenshot upload |
+| Orders / detail | ✅ | ⬜ status tracker · invoice |
+| Wishlist · Profile | ✅ | ⬜ add/remove · edit profile · sign out |
+| PWA | ✅ install prompt seen | ⬜ offline · add to home screen on real mobile |
+
+### SUPER ADMIN
+| Option | Status | Still to test |
+|---|---|---|
+| Dashboard · Shops · Create Shop | ✅ end-to-end verified | ⬜ edit · suspend · clone · transfer · backup |
+| Delete shop | ✅ B11 implemented | ⬜ confirm it soft-deletes and the storefront stops serving |
+| Subscriptions · System · Logs | ✅ | ⬜ change a shop plan and confirm gated features unlock |
+
+---
+
+## 🗒️ KNOWN REMAINING (non-blocking)
+- npm audit: 1 critical + 8 high remain; **every remaining Next.js advisory is fixed only on 15.x** — schedule a Next 15 migration. xlsx has no patched release upstream.
+- typescript.ignoreBuildErrors still on; `tsc --noEmit` went 466 to 177 errors, mostly from stub FK metadata in types/database.ts. Run `supabase gen types typescript` once DB access is set up, then turn the flag off.
+- Resend email still unconfigured (no domain) — order confirmations and renewal reminders do nothing.
+- Firebase FCM configured but push notifications never tested end-to-end.

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/middleware/auth-guard'
 import { handleApiError } from '@/lib/utils/api-error'
+import { sanitizeSearchTerm } from '@/lib/utils/search-filter'
 
 export async function GET(req: NextRequest) {
   try {
@@ -33,8 +34,9 @@ export async function GET(req: NextRequest) {
     if (paymentStatus) query = query.eq('payment_status', paymentStatus)
     if (customerId) query = query.eq('customer_id', customerId)
     if (q) {
+      const safeQ = sanitizeSearchTerm(q)
       query = query.or(
-        `customer_name.ilike.%${q}%,customer_phone.ilike.%${q}%,order_number.ilike.%${q}%`
+        `customer_name.ilike.%${safeQ}%,customer_phone.ilike.%${safeQ}%,order_number.ilike.%${safeQ}%`
       )
     }
 
