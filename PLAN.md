@@ -1496,3 +1496,50 @@ Page-load status below is from the automated sweep. ⬜ items need real create/e
 - typescript.ignoreBuildErrors still on; `tsc --noEmit` went 466 to 177 errors, mostly from stub FK metadata in types/database.ts. Run `supabase gen types typescript` once DB access is set up, then turn the flag off.
 - Resend email still unconfigured (no domain) — order confirmations and renewal reminders do nothing.
 - Firebase FCM configured but push notifications never tested end-to-end.
+
+---
+
+## ✅ RESOLVED — Cloudinary model (decided 2026-08-19)
+
+Chosen: **option (a)** — trial shops use the shared platform account with a
+small allowance; paid plans bring their own Cloudinary.
+
+| Plan | `cloudinary_own` | Account used | Image cap |
+|---|---|---|---|
+| Free Trial | false | Platform (shared) | **4 images** |
+| Basic | true | **Its own** — must be configured before uploading | none |
+| Premium | true | **Its own** — must be configured before uploading | none |
+
+Implemented in `lib/cloudinary/quota.ts` (`PLATFORM_IMAGE_LIMIT = 4`) and
+enforced in `app/api/admin/upload/sign` — the browser posts image bytes
+straight to Cloudinary, so signing is the only server-side gate — plus the
+server-side `uploadToCloudinary` path.
+
+**What counts toward the cap:** product images + product OG images, gallery
+images, category images, campaign images, shop logo, shop banner. Counted from
+what is actually stored, not from signature requests, so abandoned uploads do
+not burn the allowance.
+
+**Deliberately exempt:**
+- **Customer payment screenshots at checkout** — a vendor hitting its image
+  limit must never stop its own customers from placing orders.
+- **Deleting images** — removing images is how a shop gets back under the cap.
+
+**A paid shop with no Cloudinary configured is refused, not silently fallen
+back to the platform account**, with a message pointing at Media Storage. That
+is intentional: a paying shop should not quietly spend platform storage.
+
+Verified live on the trial test shop:
+
+| Folder | Result |
+|---|---|
+| products / gallery / logos | 409 once 4 images stored, with the upgrade message |
+| payments | 200 — still works at the cap ✅ |
+
+---
+
+## ✅ Migration 013 applied (2026-08-19)
+
+All four embedded joins confirmed working against production:
+`staff`, `audit_logs`, `login_history`, `reviews` → `users(...)`.
+Staff, Security (audit log + login history) and Reviews are unblocked.

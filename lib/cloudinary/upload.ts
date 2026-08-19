@@ -1,6 +1,6 @@
 import { v2 as cloudinary } from 'cloudinary'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { resolveCloudinaryForUpload } from '@/lib/cloudinary/quota'
+import { resolveCloudinaryForUpload, getOwnCredentials } from '@/lib/cloudinary/quota'
 
 interface CloudinaryCredentials {
   cloudName: string
@@ -128,7 +128,7 @@ export async function testCloudinaryConnection(shopId: string): Promise<{
   cloudName?: string
   error?: string
 }> {
-  const creds = await getShopCredentials(shopId)
+  const creds = await getOwnCredentials(shopId)
   if (!creds) {
     return { success: false, error: 'No Cloudinary credentials configured.' }
   }
@@ -160,7 +160,7 @@ export async function getCloudinaryUsage(shopId: string): Promise<{
   transformationCount: number
   imageCount: number
 } | null> {
-  const creds = await getShopCredentials(shopId)
+  const creds = await getOwnCredentials(shopId)
   if (!creds) return null
 
   configureCloudinary(creds)

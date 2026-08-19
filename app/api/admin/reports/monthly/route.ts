@@ -9,9 +9,32 @@ export async function GET(req: NextRequest) {
     const supabase = createClient()
 
     const { searchParams } = req.nextUrl
-    // Default: current month
-    const monthYear = searchParams.get('month') ?? new Date().toISOString().substring(0, 7)
-    const [year, month] = monthYear.split('-').map(Number)
+
+    // The admin Reports page sends ?year=2026&month=8; the combined
+    // ?month=2026-08 form is also accepted. Previously only the combined form
+    // was parsed, so the page's own request produced year=8, month=NaN and
+    // threw "Invalid time value" on every load.
+    const now = new Date()
+    const yearParam = searchParams.get('year')
+    const monthParam = searchParams.get('month')
+
+    let year: number
+    let month: number
+
+    if (monthParam?.includes('-')) {
+      const [y, m] = monthParam.split('-').map(Number)
+      year = y
+      month = m
+    } else {
+      year = yearParam ? Number(yearParam) : now.getFullYear()
+      month = monthParam ? Number(monthParam) : now.getMonth() + 1
+    }
+
+    if (!Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12 || year < 2000 || year > 2100) {
+      return NextResponse.json({ error: 'Invalid year or month' }, { status: 400 })
+    }
+
+    const monthYear = `${year}-${String(month).padStart(2, '0')}`
 
     const start = new Date(year, month - 1, 1).toISOString()
     const end = new Date(year, month, 0, 23, 59, 59, 999).toISOString()

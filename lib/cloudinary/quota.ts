@@ -38,7 +38,13 @@ export type CloudinaryResolution =
   | { ok: true; creds: CloudinaryCredentials; mode: 'platform'; used: number; limit: number }
   | { ok: false; reason: 'own_required' | 'platform_unconfigured' | 'limit_reached'; message: string; used?: number; limit?: number }
 
-async function getOwnCredentials(shopId: string): Promise<CloudinaryCredentials | null> {
+/**
+ * The shop's OWN Cloudinary credentials, with no platform fallback.
+ * Connection tests and usage reporting must use this: falling back to the
+ * shared platform account would test/report the platform owner's account and
+ * show its aggregate usage to an unrelated vendor.
+ */
+export async function getOwnCredentials(shopId: string): Promise<CloudinaryCredentials | null> {
   const supabase = createAdminClient()
   const { data } = await supabase
     .from('cloudinary_settings')
