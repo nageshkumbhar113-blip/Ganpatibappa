@@ -64,7 +64,7 @@ async function getShopCatalog(slug: string, categoryId?: string, q?: string, pag
 // build a directions URL. Falls back to the stored link as-is for a
 // manually-pasted (non-coordinate) Maps link.
 function getDirectionsUrl(mapsUrl: string): string {
-  const m = mapsUrl.match(/[?&]q=(-?d+.d+),(-?d+.d+)/)
+  const m = mapsUrl.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/)
   if (m) {
     const [, lat, lng] = m
     return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`
