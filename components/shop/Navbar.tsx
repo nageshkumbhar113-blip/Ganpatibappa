@@ -45,7 +45,7 @@ export function ShopNavbar({ shopName, logoUrl }: NavbarProps) {
   const isLoggedIn = role !== null
 
   return (
-    <header className="sticky top-0 z-30 bg-white border-b border-gray-100 shadow-sm">
+    <header className="sticky top-0 z-30 bg-[#17212b] shadow-sm">
       <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
         {/* Logo */}
         <Link href={basePath || '/'} className="flex items-center gap-2">
@@ -55,7 +55,7 @@ export function ShopNavbar({ shopName, logoUrl }: NavbarProps) {
             <span className="text-xl">🙏</span>
           )}
           {shopName && (
-            <span className="font-bold text-gray-900 text-sm hidden sm:block">{shopName}</span>
+            <span className="font-black text-white text-sm hidden sm:block">{shopName}</span>
           )}
         </Link>
 
@@ -63,7 +63,7 @@ export function ShopNavbar({ shopName, logoUrl }: NavbarProps) {
         <nav className="flex items-center gap-1">
           <Link
             href={`${basePath}/products`}
-            className="rounded-lg px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors"
+            className="rounded-lg px-3 py-1.5 text-sm font-medium text-white/80 hover:text-orange-400 hover:bg-white/5 transition-colors"
           >
             Products
           </Link>
@@ -72,7 +72,7 @@ export function ShopNavbar({ shopName, logoUrl }: NavbarProps) {
 
           <Link
             href={`${basePath}/wishlist`}
-            className="rounded-lg p-2 text-gray-500 hover:text-red-500 hover:bg-gray-50 transition-colors"
+            className="rounded-lg p-2 text-white/70 hover:text-orange-400 hover:bg-white/5 transition-colors"
           >
             <Heart className="h-5 w-5" />
           </Link>
@@ -81,7 +81,7 @@ export function ShopNavbar({ shopName, logoUrl }: NavbarProps) {
           <Link
             href={isLoggedIn ? `${basePath}/profile` : `/login`}
             title={isLoggedIn ? 'My Profile' : 'Customer Login'}
-            className="rounded-lg p-2 text-gray-500 hover:text-orange-500 hover:bg-gray-50 transition-colors"
+            className="rounded-lg p-2 text-white/70 hover:text-orange-400 hover:bg-white/5 transition-colors"
           >
             <User className="h-5 w-5" />
           </Link>
@@ -91,7 +91,7 @@ export function ShopNavbar({ shopName, logoUrl }: NavbarProps) {
             <Link
               href="/admin"
               title="Admin Panel"
-              className="rounded-lg p-2 text-orange-500 hover:text-orange-600 hover:bg-orange-50 transition-colors"
+              className="rounded-lg p-2 text-orange-400 hover:text-orange-300 hover:bg-white/5 transition-colors"
             >
               <LayoutDashboard className="h-5 w-5" />
             </Link>
@@ -102,7 +102,7 @@ export function ShopNavbar({ shopName, logoUrl }: NavbarProps) {
             <Link
               href="/login?redirectTo=/admin"
               title="Admin Login"
-              className="ml-1 inline-flex items-center gap-1 rounded-lg border border-orange-200 bg-orange-50 px-2.5 py-1.5 text-xs font-semibold text-orange-600 hover:bg-orange-100 transition-colors"
+              className="ml-1 inline-flex items-center gap-1 rounded-lg bg-orange-500 px-2.5 py-1.5 text-xs font-bold text-white hover:bg-orange-600 transition-colors"
             >
               <LogIn className="h-3.5 w-3.5" />
               Admin
@@ -121,11 +121,11 @@ function CartIcon() {
   return (
     <Link
       href={`${basePath}/cart`}
-      className="relative rounded-lg p-2 text-gray-500 hover:text-orange-500 hover:bg-gray-50 transition-colors"
+      className="relative rounded-lg p-2 text-white/70 hover:text-orange-400 hover:bg-white/5 transition-colors"
     >
       <ShoppingCart className="h-5 w-5" />
       {totalItems > 0 && (
-        <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-orange-500 text-[10px] font-bold text-white flex items-center justify-center">
+        <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-orange-500 text-[10px] font-bold text-white flex items-center justify-center ring-2 ring-[#17212b]">
           {totalItems > 9 ? '9+' : totalItems}
         </span>
       )}
