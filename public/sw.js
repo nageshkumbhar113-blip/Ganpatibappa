@@ -1,8 +1,8 @@
 // GanpatiBappa Service Worker v2.0
 // Handles: offline caching, push notifications, background sync
 
-const CACHE_NAME = 'ganpatibappa-v2'
-const STATIC_CACHE = 'static-v2'
+const CACHE_NAME = 'ganpatibappa-v3'
+const STATIC_CACHE = 'static-v3'
 const OFFLINE_PAGE = '/offline.html'
 
 // Static assets to cache on install
@@ -38,38 +38,61 @@ self.addEventListener('activate', (event) => {
 // ── Fetch ──────────────────────────────────────────────────────
 self.addEventListener('fetch', (event) => {
   const { request } = event
-  const url = new URL(request.url)
 
-  // Skip non-GET and API requests
   if (request.method !== 'GET') return
+
+  let url
+  try {
+    url = new URL(request.url)
+  } catch {
+    return
+  }
+
+  // Only http(s) can go in the Cache API at all. Extension requests
+  // (chrome-extension://) threw on every cache.put() and filled the console.
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') return
+
+  // Never touch another origin. Images on Cloudinary load perfectly well on
+  // their own under img-src; intercepting them made the worker re-request
+  // them with fetch(), which is governed by connect-src instead — so a
+  // blocked fetch turned a working image into a 408 and a broken thumbnail.
+  if (url.origin !== self.location.origin) return
+
   if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/_next/')) return
 
-  // Product pages: cache-first for images, network-first for HTML
+  // Same-origin images: cache-first, but fall through to the network result
+  // rather than inventing an error response.
   if (request.destination === 'image') {
     event.respondWith(
-      caches.open(CACHE_NAME).then(async (cache) => {
+      (async () => {
+        const cache = await caches.open(CACHE_NAME)
         const cached = await cache.match(request)
         if (cached) return cached
         try {
           const response = await fetch(request)
-          if (response.ok) cache.put(request, response.clone())
+          if (response.ok && response.type === 'basic') {
+            cache.put(request, response.clone()).catch(() => {})
+          }
           return response
         } catch {
-          return cached ?? new Response('', { status: 408 })
+          return Response.error()
         }
-      })
+      })()
     )
     return
   }
 
-  // HTML pages: network-first with offline fallback
+  // HTML pages: network-first with an offline fallback
   if (request.destination === 'document') {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          if (response.ok) {
+          if (response.ok && response.type === 'basic') {
             const clone = response.clone()
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone))
+            caches
+              .open(CACHE_NAME)
+              .then((cache) => cache.put(request, clone))
+              .catch(() => {})
           }
           return response
         })
