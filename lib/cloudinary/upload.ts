@@ -1,5 +1,6 @@
 import { v2 as cloudinary } from 'cloudinary'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { resolveCloudinaryForUpload } from '@/lib/cloudinary/quota'
 
 interface CloudinaryCredentials {
   cloudName: string
@@ -16,30 +17,17 @@ interface UploadResult {
   format: string
 }
 
-/** Get Cloudinary credentials for a specific shop. */
-async function getShopCredentials(shopId: string): Promise<CloudinaryCredentials | null> {
-  const supabase = createAdminClient()
-  const { data } = await supabase
-    .from('cloudinary_settings')
-    .select('cloud_name, api_key, api_secret, is_active')
-    .eq('shop_id', shopId)
-    .single()
-
-  if (!data || !data.is_active) return null
-
-  return {
-    cloudName: data.cloud_name,
-    apiKey: data.api_key,
-    apiSecret: data.api_secret,
-  }
-}
-
-/** Fall back to shared platform Cloudinary if shop has no own account. */
-function getDefaultCredentials(): CloudinaryCredentials {
-  return {
-    cloudName: process.env.CLOUDINARY_CLOUD_NAME!,
-    apiKey: process.env.CLOUDINARY_API_KEY!,
-    apiSecret: process.env.CLOUDINARY_API_SECRET!,
+/**
+ * Raised when a shop may not upload: either its plan expects its own
+ * Cloudinary account and none is configured, or it is on the shared platform
+ * account and has used its image allowance.
+ */
+export class CloudinaryUploadNotAllowedError extends Error {
+  readonly reason: string
+  constructor(reason: string, message: string) {
+    super(message)
+    this.name = 'CloudinaryUploadNotAllowedError'
+    this.reason = reason
   }
 }
 
@@ -63,9 +51,9 @@ export async function uploadToCloudinary(
     maxWidth?: number
   }
 ): Promise<UploadResult> {
-  const shopCreds = await getShopCredentials(shopId)
-  const creds = shopCreds ?? getDefaultCredentials()
-  configureCloudinary(creds)
+  const resolved = await resolveCloudinaryForUpload(shopId, folder)
+  if (!resolved.ok) throw new CloudinaryUploadNotAllowedError(resolved.reason, resolved.message)
+  configureCloudinary(resolved.creds)
 
   const folderPath = `ganpatibappa/${shopId}/${folder}`
 
@@ -109,9 +97,13 @@ export async function uploadToCloudinary(
 
 /** Delete an image from Cloudinary. */
 export async function deleteFromCloudinary(shopId: string, publicId: string): Promise<void> {
-  const shopCreds = await getShopCredentials(shopId)
-  const creds = shopCreds ?? getDefaultCredentials()
-  configureCloudinary(creds)
+  // Deleting is never quota-blocked — a shop at its limit must still be able
+  // to remove images, since that is how it gets back under the limit.
+  // 'payments' is an exempt folder, so this resolves purely to the account
+  // that holds the file.
+  const resolved = await resolveCloudinaryForUpload(shopId, 'payments')
+  if (!resolved.ok) throw new CloudinaryUploadNotAllowedError(resolved.reason, resolved.message)
+  configureCloudinary(resolved.creds)
 
   await cloudinary.uploader.destroy(publicId)
 }
