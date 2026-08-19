@@ -5,6 +5,12 @@ import { ChevronLeft, Phone, MapPin } from 'lucide-react'
 import { formatCurrency, formatDate, ORDER_STATUS_LABELS, ORDER_STATUS_COLORS, PAYMENT_STATUS_LABELS } from '@/lib/utils/format'
 import { ReviewForm } from '@/components/shop/ReviewForm'
 
+// Order status changes (confirmed -> delivered etc.) must always be live —
+// this page showed a stale status/notes/review-eligibility from Next.js's
+// route cache otherwise (the same class of stale-cache bug fixed earlier
+// at the Supabase client level for the storefront's product listing).
+export const dynamic = 'force-dynamic'
+
 interface Props { params: { shopSlug: string; id: string } }
 
 const STATUS_STEPS = ['pending', 'confirmed', 'in_production', 'ready', 'delivered']

@@ -10,6 +10,10 @@ import {
 } from '@/lib/utils/format'
 import { ReviewForm } from '@/components/shop/ReviewForm'
 
+// Order status changes must always be live — see the matching comment in
+// app/shop/[shopSlug]/orders/[id]/page.tsx.
+export const dynamic = 'force-dynamic'
+
 const STATUS_STEPS = ['pending', 'confirmed', 'in_production', 'ready', 'delivered']
 
 export default async function OrderDetailPage({ params }: { params: { id: string } }) {
