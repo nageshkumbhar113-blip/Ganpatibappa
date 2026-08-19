@@ -8,7 +8,11 @@ const securityHeaders = [
   { key: 'X-Frame-Options', value: 'DENY' },
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-  { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+  // geolocation=(self) — the admin's "capture shop location" button
+  // (Settings → GPS) needs navigator.geolocation, which this header used to
+  // block outright for every browser, on every device, regardless of what
+  // the user allowed. Camera/mic stay disabled — nothing in the app uses them.
+  { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(self)' },
   { key: 'X-XSS-Protection', value: '1; mode=block' },
   {
     key: 'Content-Security-Policy',
