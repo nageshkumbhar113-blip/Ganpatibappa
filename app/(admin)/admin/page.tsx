@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Package, ShoppingBag, Users, MessageCircle, TrendingUp, Star } from 'lucide-react'
 import Link from 'next/link'
 import { formatCurrency } from '@/lib/utils/format'
+import { sequential } from '@/lib/utils/sequential'
 
 async function getDashboardStats(shopId: string) {
   const supabase = createClient()
@@ -21,7 +22,7 @@ async function getDashboardStats(shopId: string) {
     { count: pendingReviews },
     { data: recentOrders },
     { data: monthlyRevenue },
-  ] = await Promise.all([
+  ] = await sequential([
     supabase
       .from('products')
       .select('*', { count: 'exact', head: true })

@@ -8,36 +8,39 @@ import Link from 'next/link'
 async function getPlatformStats() {
   const supabase = createAdminClient()
 
-  const [
-    { count: totalShops },
-    { count: activeShops },
-    { count: trialShops },
-    { count: expiredShops },
-    { count: totalUsers },
-    { data: recentShops },
-  ] = await Promise.all([
-    supabase.from('shops').select('*', { count: 'exact', head: true }),
-    supabase.from('shops').select('*', { count: 'exact', head: true }).eq('status', 'active'),
-    supabase
-      .from('shop_subscriptions')
-      .select('*', { count: 'exact', head: true })
-      .eq('status', 'trial'),
-    supabase
-      .from('shop_subscriptions')
-      .select('*', { count: 'exact', head: true })
-      .eq('status', 'expired'),
-    supabase.from('users').select('*', { count: 'exact', head: true }).eq('role', 'customer'),
-    supabase
-      .from('shops')
-      .select('id, name, slug, status, created_at, shop_subscriptions(status, expires_at, subscription_plans(display_name))')
-      .order('created_at', { ascending: false })
-      .limit(8),
-  ])
+  // Sequential, not Promise.all — concurrent requests to the Supabase REST
+  // endpoint from a single serverless invocation have been observed to
+  // intermittently drop one result, which here would silently show 0.
+  const { count: totalShops } = await supabase
+    .from('shops')
+    .select('*', { count: 'exact', head: true })
+    .neq('status', 'deleted')
+
+  const { count: activeShops } = await supabase
+    .from('shops')
+    .select('*', { count: 'exact', head: true })
+    .eq('status', 'active')
+
+  const { count: expiredShops } = await supabase
+    .from('shop_subscriptions')
+    .select('*', { count: 'exact', head: true })
+    .eq('status', 'expired')
+
+  const { count: totalUsers } = await supabase
+    .from('users')
+    .select('*', { count: 'exact', head: true })
+    .eq('role', 'customer')
+
+  const { data: recentShops } = await supabase
+    .from('shops')
+    .select('id, name, slug, status, created_at, shop_subscriptions(status, expires_at, subscription_plans(display_name))')
+    .neq('status', 'deleted')
+    .order('created_at', { ascending: false })
+    .limit(8)
 
   return {
     totalShops: totalShops ?? 0,
     activeShops: activeShops ?? 0,
-    trialShops: trialShops ?? 0,
     expiredShops: expiredShops ?? 0,
     totalCustomers: totalUsers ?? 0,
     recentShops: recentShops ?? [],
@@ -64,8 +67,10 @@ export default async function SuperAdminDashboard() {
       bg: 'bg-green-50',
     },
     {
-      title: 'Trial Shops',
-      value: stats.trialShops,
+      // The free trial was retired — every shop is on a paid plan, so what
+      // matters now is which subscriptions have lapsed.
+      title: 'Expired Subscriptions',
+      value: stats.expiredShops,
       icon: CreditCard,
       color: 'text-orange-600',
       bg: 'bg-orange-50',

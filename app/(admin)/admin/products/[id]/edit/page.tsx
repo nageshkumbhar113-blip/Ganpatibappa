@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import Link from 'next/link'
 import { ChevronLeft } from 'lucide-react'
 import { notFound } from 'next/navigation'
+import { sequential } from '@/lib/utils/sequential'
 
 async function getProduct(shopId: string, productId: string) {
   const supabase = createClient()
@@ -34,7 +35,7 @@ export default async function EditProductPage({
   params: { id: string }
 }) {
   const user = await requireAdmin()
-  const [product, categories] = await Promise.all([
+  const [product, categories] = await sequential([
     getProduct(user.shop_id!, params.id),
     getCategories(user.shop_id!),
   ])

@@ -38,6 +38,9 @@ export async function GET(req: NextRequest) {
 
     if (filter === 'active') dbQuery = dbQuery.eq('status', 'active')
     if (filter === 'suspended') dbQuery = dbQuery.eq('status', 'suspended')
+    // Deleted shops stay in the table (delete is a soft delete, so it can be
+    // undone), but they must not clutter the shop list — unless explicitly asked for.
+    if (filter !== 'deleted') dbQuery = dbQuery.neq('status', 'deleted')
     if (query) dbQuery = dbQuery.ilike('name', `%${query}%`)
 
     const { data, error } = await dbQuery
