@@ -11,33 +11,43 @@ interface StaffMember {
   is_active: boolean
   permissions: Record<string, boolean>
   users: {
-    full_name: string
+    name: string
     email: string
     phone?: string
   }
 }
 
+// Keys match app/api/admin/staff/route.ts's InviteStaffSchema.permissions exactly —
+// they were previously manage_products/manage_orders/... etc, which the API
+// silently accepted and ignored (Zod defaults every listed key to false when
+// absent), so every staff member was created with all permissions off.
 const PERMISSIONS = [
-  { key: 'manage_products', label: 'Products' },
-  { key: 'manage_orders', label: 'Orders' },
-  { key: 'manage_customers', label: 'Customers' },
-  { key: 'view_reports', label: 'Reports' },
-  { key: 'manage_marketing', label: 'Marketing' },
+  { key: 'products', label: 'Products' },
+  { key: 'orders', label: 'Orders' },
+  { key: 'customers', label: 'Customers' },
+  { key: 'gallery', label: 'Gallery' },
+  { key: 'reports', label: 'Reports' },
+  { key: 'settings', label: 'Settings' },
+  { key: 'staff', label: 'Staff Management' },
 ]
+
+const EMPTY_PERMISSIONS = Object.fromEntries(PERMISSIONS.map((p) => [p.key, false])) as Record<string, boolean>
+
+const EMPTY_FORM = {
+  name: '',
+  email: '',
+  phone: '',
+  password: '',
+  role: 'employee' as 'manager' | 'employee',
+  permissions: { ...EMPTY_PERMISSIONS },
+}
 
 export default function StaffPage() {
   const [staff, setStaff] = useState<StaffMember[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [showInvite, setShowInvite] = useState(false)
   const [isPending, startTransition] = useTransition()
-  const [form, setForm] = useState({
-    full_name: '',
-    email: '',
-    phone: '',
-    password: '',
-    role: 'staff',
-    permissions: {} as Record<string, boolean>,
-  })
+  const [form, setForm] = useState(EMPTY_FORM)
 
   function loadStaff() {
     fetch('/api/admin/staff')
@@ -60,11 +70,11 @@ export default function StaffPage() {
       if (res.ok) {
         toast.success('Staff member invited')
         setShowInvite(false)
-        setForm({ full_name: '', email: '', phone: '', password: '', role: 'staff', permissions: {} })
+        setForm({ ...EMPTY_FORM, permissions: { ...EMPTY_PERMISSIONS } })
         loadStaff()
       } else {
         const d = await res.json()
-        toast.error(d.error ?? 'Failed to invite staff')
+        toast.error(d.error ?? d.message ?? 'Failed to invite staff')
       }
     })
   }
@@ -124,7 +134,7 @@ export default function StaffPage() {
               {staff.map((member) => (
                 <tr key={member.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-4 py-3">
-                    <p className="font-medium text-gray-900">{member.users?.full_name}</p>
+                    <p className="font-medium text-gray-900">{member.users?.name}</p>
                     <p className="text-xs text-gray-400">{member.users?.email}</p>
                     {member.users?.phone && (
                       <p className="text-xs text-gray-400">{member.users.phone}</p>
@@ -188,8 +198,8 @@ export default function StaffPage() {
                 <label className="text-xs font-medium text-gray-600 block mb-1">Full Name *</label>
                 <input
                   required
-                  value={form.full_name}
-                  onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))}
+                  value={form.name}
+                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                   className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
                 />
               </div>
@@ -211,6 +221,25 @@ export default function StaffPage() {
                   onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
                   className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
                 />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-600 block mb-1">Role *</label>
+                <div className="flex gap-2">
+                  {(['employee', 'manager'] as const).map((r) => (
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => setForm((f) => ({ ...f, role: r }))}
+                      className={`flex-1 rounded-lg border-2 py-2 text-sm font-medium capitalize transition-colors ${
+                        form.role === r
+                          ? 'border-orange-500 bg-orange-50 text-orange-700'
+                          : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                      }`}
+                    >
+                      {r}
+                    </button>
+                  ))}
+                </div>
               </div>
               <div>
                 <label className="text-xs font-medium text-gray-600 block mb-1">Password *</label>
