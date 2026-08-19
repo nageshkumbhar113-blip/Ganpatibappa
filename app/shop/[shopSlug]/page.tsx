@@ -88,12 +88,13 @@ export default async function ShopHomePage({ params, searchParams }: Props) {
   const { shop, products, categories, gallery, banners, total, totalPages } = data
   const bannerImages = banners.map((b: any) => b.image_url)
   const hasCarousel = bannerImages.length > 0
-  const settings = (shop.shop_settings as any)?.[0] ?? {}
+  const settings = (shop.shop_settings as any) ?? {}
   const showPrices = settings.show_prices !== false
   const base = `/shop/${params.shopSlug}`
   const wa = shop.whatsapp?.replace(/\D/g, '')
   const mapsUrl = (shop as any).maps_url as string | null | undefined
   const youtubeId = settings.youtube_url ? getYouTubeId(settings.youtube_url) : null
+  const _dbg = `MAPSDBG|${JSON.stringify(mapsUrl)}|${JSON.stringify(Object.keys(shop))}|${JSON.stringify((shop as any).maps_url)}`
 
   return (
     <div className="min-h-screen bg-[#fafaf9]">
@@ -234,6 +235,7 @@ export default async function ShopHomePage({ params, searchParams }: Props) {
       )}
 
       {/* ── CATALOG ──────────────────────────────────────────── */}
+      <pre style={{fontSize:10,background:'yellow',padding:8,wordBreak:'break-all'}}>{_dbg}</pre>
       <div id="catalog" className="max-w-5xl mx-auto px-4 py-8 space-y-6">
 
 

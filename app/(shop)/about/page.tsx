@@ -27,7 +27,7 @@ export default async function AboutPage() {
   const shop = await getAboutData()
   if (!shop) notFound()
 
-  const settings = (shop.shop_settings as any)?.[0] ?? {}
+  const settings = (shop.shop_settings as any) ?? {}
 
   return (
     <div className="min-h-screen bg-gray-50 pb-16">

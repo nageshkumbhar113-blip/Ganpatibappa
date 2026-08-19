@@ -32,7 +32,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const shop = await getShopByRequest()
   if (!shop) return { title: 'Shop Not Found' }
 
-  const settings = (shop.shop_settings as any)?.[0] ?? {}
+  const settings = (shop.shop_settings as any) ?? {}
   const pwa = (shop.pwa_settings as any)?.[0] ?? {}
 
   return {
@@ -59,7 +59,7 @@ export default async function ShopLayout({
 
   if (!shop) notFound()
 
-  const settings = (shop.shop_settings as any)?.[0] ?? {}
+  const settings = (shop.shop_settings as any) ?? {}
   const marketing = (shop.marketing_settings as any)?.[0] ?? {}
   const pwa = (shop.pwa_settings as any)?.[0] ?? {}
 

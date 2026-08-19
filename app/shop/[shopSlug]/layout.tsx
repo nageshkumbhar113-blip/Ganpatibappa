@@ -30,7 +30,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const shop = await getShop(params.shopSlug)
   if (!shop) return { title: 'Shop Not Found' }
 
-  const settings = (shop.shop_settings as any)?.[0] ?? {}
+  const settings = (shop.shop_settings as any) ?? {}
   const pwa = (shop.pwa_settings as any)?.[0] ?? {}
 
   return {

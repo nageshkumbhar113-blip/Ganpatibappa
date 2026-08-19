@@ -50,7 +50,7 @@ export default async function ShopHomePage({ searchParams }: Props) {
   if (!data?.shop) notFound()
 
   const { shop, products, categories, total, totalPages } = data
-  const settings = (shop.shop_settings as any)?.[0] ?? {}
+  const settings = (shop.shop_settings as any) ?? {}
   const showPrices = settings.show_prices !== false
   const wa = shop.whatsapp?.replace(/\D/g, '')
 
