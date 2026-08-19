@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { formatCurrency, calculateDiscount } from '@/lib/utils/format'
 import { useCart } from '@/lib/hooks/useCart'
+import { isWishlisted as checkWishlisted, toggleWishlist as toggleLocalWishlist } from '@/lib/utils/local-wishlist'
 
 // The shop stores a plain "view this pin" Maps link (maps?q=lat,lng, captured
 // from the admin's GPS). For a customer, what matters is turn-by-turn
@@ -84,11 +85,8 @@ export default function ProductDetailPage() {
             .then((d) => setReviews(d.reviews ?? []))
             .catch(() => {})
 
-          // Check wishlist
-          fetch(`/api/shop/wishlist?product_id=${p.id}`)
-            .then((r) => r.json())
-            .then((d) => setIsWishlisted(d.isWishlisted ?? false))
-            .catch(() => {})
+          // Check wishlist (browser-local — see lib/utils/local-wishlist.ts)
+          setIsWishlisted(checkWishlisted(window.location.hostname, p.id))
         }
       }
 
@@ -103,17 +101,10 @@ export default function ProductDetailPage() {
     load()
   }, [params.slug])
 
-  async function toggleWishlist() {
-    const res = await fetch('/api/shop/wishlist', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ product_id: product.id }),
-    })
-    if (res.ok) {
-      const d = await res.json()
-      setIsWishlisted(d.added)
-      toast.success(d.added ? 'Added to Wishlist' : 'Removed from Wishlist')
-    }
+  function toggleWishlist() {
+    const { added } = toggleLocalWishlist(window.location.hostname, product.id)
+    setIsWishlisted(added)
+    toast.success(added ? 'Added to Wishlist' : 'Removed from Wishlist')
   }
 
   async function handleAddToCart() {

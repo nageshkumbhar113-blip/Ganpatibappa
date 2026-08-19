@@ -1,100 +1,50 @@
 'use client'
 
-import { useEffect, useState, useTransition } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { Loader2, LogOut, User } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
+import { Save, User } from 'lucide-react'
+import { getCustomerDetails, saveCustomerDetails } from '@/lib/utils/local-customer'
 
-export default function ProfilePage() {
-  const router = useRouter()
-  const supabase = createClient()
-  const [user, setUser] = useState<any>(null)
-  const [profile, setProfile] = useState<any>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [isSaving, startTransition] = useTransition()
-  const [form, setForm] = useState({ name: '', phone: '' })
+// There is no customer signup/login anywhere in this app (checkout is
+// guest-only), so this isn't an account profile — it's a browser-local
+// "remember my details" that prefills checkout next time.
+export default function MyDetailsPage() {
+  const [form, setForm] = useState({ name: '', phone: '', address: '' })
+  const [saved, setSaved] = useState(false)
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (!data.user) {
-        router.push('/login')
-        return
-      }
-      setUser(data.user)
-
-      supabase
-        .from('users')
-        .select('name, phone')
-        .eq('id', data.user.id)
-        .single()
-        .then(({ data: p }) => {
-          if (p) {
-            setProfile(p)
-            setForm({ name: p.name ?? '', phone: p.phone ?? '' })
-          }
-        })
-        .finally(() => setIsLoading(false))
-    })
+    setForm(getCustomerDetails(window.location.hostname))
   }, [])
 
-  async function handleSave(e: React.FormEvent) {
+  function handleSave(e: React.FormEvent) {
     e.preventDefault()
-    startTransition(async () => {
-      const { error } = await supabase
-        .from('users')
-        .update({ name: form.name, phone: form.phone })
-        .eq('id', user.id)
-
-      if (error) {
-        toast.error('Failed to update profile')
-      } else {
-        toast.success('Profile updated')
-      }
-    })
-  }
-
-  async function handleSignOut() {
-    await supabase.auth.signOut()
-    router.push('/')
-    router.refresh()
-  }
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-orange-400" />
-      </div>
-    )
+    saveCustomerDetails(window.location.hostname, form)
+    setSaved(true)
+    toast.success('Saved — checkout will auto-fill next time')
+    setTimeout(() => setSaved(false), 2000)
   }
 
   return (
     <div className="min-h-screen bg-gray-50 pb-16">
-      <div className="max-w-sm mx-auto px-4 py-8 space-y-5">
-        {/* Avatar */}
-        <div className="flex flex-col items-center gap-2">
-          <div className="h-16 w-16 rounded-full bg-orange-100 flex items-center justify-center">
-            <User className="h-8 w-8 text-orange-500" />
-          </div>
-          <p className="text-sm text-gray-500">{user?.email}</p>
+      <div className="max-w-md mx-auto px-4 py-8">
+        <div className="text-center mb-6">
+          <User className="h-10 w-10 mx-auto text-orange-400 mb-2" />
+          <h1 className="text-xl font-bold text-gray-900">My Details</h1>
+          <p className="text-sm text-gray-500 mt-1">Checkout will auto-fill from this next time</p>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSave} className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 space-y-3">
-          <h2 className="text-sm font-bold text-gray-900">Edit Profile</h2>
-
+        <form onSubmit={handleSave} className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 space-y-4">
           <div>
             <label className="text-xs font-medium text-gray-600 block mb-1">Full Name</label>
             <input
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
-              placeholder="Your name"
+              placeholder="Ramesh Patil"
             />
           </div>
-
           <div>
-            <label className="text-xs font-medium text-gray-600 block mb-1">Phone</label>
+            <label className="text-xs font-medium text-gray-600 block mb-1">Phone Number</label>
             <input
               type="tel"
               value={form.phone}
@@ -103,42 +53,23 @@ export default function ProfilePage() {
               placeholder="9876543210"
             />
           </div>
-
+          <div>
+            <label className="text-xs font-medium text-gray-600 block mb-1">Address</label>
+            <textarea
+              rows={2}
+              value={form.address}
+              onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 resize-none"
+              placeholder="Street, City, Pincode…"
+            />
+          </div>
           <button
             type="submit"
-            disabled={isSaving}
-            className="w-full rounded-xl bg-orange-500 py-2.5 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-60 transition-colors flex items-center justify-center gap-2"
+            className="w-full rounded-xl bg-orange-500 py-3 text-sm font-bold text-white hover:bg-orange-600 flex items-center justify-center gap-2 transition-colors"
           >
-            {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}
-            Save Changes
+            <Save className="h-4 w-4" /> {saved ? 'Saved ✅' : 'Save'}
           </button>
         </form>
-
-        {/* Quick links */}
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm divide-y divide-gray-50 overflow-hidden">
-          {[
-            { href: '/orders', label: 'My Orders' },
-            { href: '/wishlist', label: 'My Wishlist' },
-          ].map((link) => (
-            <a
-              key={link.href}
-              href={link.href}
-              className="flex items-center justify-between px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-            >
-              {link.label}
-              <span className="text-gray-300">›</span>
-            </a>
-          ))}
-        </div>
-
-        {/* Sign out */}
-        <button
-          onClick={handleSignOut}
-          className="w-full flex items-center justify-center gap-2 rounded-xl border border-red-200 py-3 text-sm font-medium text-red-500 hover:bg-red-50 transition-colors"
-        >
-          <LogOut className="h-4 w-4" />
-          Sign Out
-        </button>
       </div>
     </div>
   )

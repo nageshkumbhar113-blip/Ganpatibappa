@@ -8,6 +8,7 @@ import {
   ORDER_STATUS_LABELS, ORDER_STATUS_COLORS,
   PAYMENT_STATUS_LABELS,
 } from '@/lib/utils/format'
+import { ReviewForm } from '@/components/shop/ReviewForm'
 
 const STATUS_STEPS = ['pending', 'confirmed', 'in_production', 'ready', 'delivered']
 
@@ -185,6 +186,15 @@ export default async function OrderDetailPage({ params }: { params: { id: string
           <div className="bg-amber-50 rounded-xl border border-amber-100 p-4">
             <h3 className="text-xs font-bold text-amber-700 mb-1">Notes</h3>
             <p className="text-sm text-amber-800">{order.notes}</p>
+          </div>
+        )}
+
+        {order.status === 'delivered' && (
+          <div className="space-y-2">
+            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide px-1">Rate your murti</h3>
+            {(order.order_items ?? []).filter((item: any) => item.product_id).map((item: any) => (
+              <ReviewForm key={item.id} orderId={order.id} productId={item.product_id} productName={item.product_name} />
+            ))}
           </div>
         )}
       </div>

@@ -8,6 +8,7 @@ import { ChevronLeft, Loader2, CreditCard, Smartphone } from 'lucide-react'
 import { useCart } from '@/lib/hooks/useCart'
 import { formatCurrency } from '@/lib/utils/format'
 import { UpiPaymentQR } from '@/components/shop/UpiPaymentQR'
+import { getCustomerDetails, saveCustomerDetails } from '@/lib/utils/local-customer'
 
 export default function CheckoutPage() {
   const router = useRouter()
@@ -35,6 +36,12 @@ export default function CheckoutPage() {
       .then((r) => r.json())
       .then((d) => { if (d.shop?.upi_id) setUpi(d.shop) })
       .catch(() => {})
+    // No login exists — "remember me" comes from lib/utils/local-customer.ts
+    // instead, saved after a previous order or via the "My Details" page.
+    const saved = getCustomerDetails(window.location.hostname)
+    if (saved.name || saved.phone || saved.address) {
+      setForm((f) => ({ ...f, customer_name: saved.name || f.customer_name, customer_phone: saved.phone || f.customer_phone, customer_address: saved.address || f.customer_address }))
+    }
   }, [])
 
   function set(field: string, value: string) {
@@ -98,6 +105,7 @@ export default function CheckoutPage() {
       if (res.ok) {
         const d = await res.json()
         clearCart()
+        saveCustomerDetails(window.location.hostname, { name: form.customer_name, phone: form.customer_phone, address: form.customer_address })
         toast.success(`Order placed! #${d.order.order_number}`)
         router.push(`/orders/${d.order.id}`)
       } else {

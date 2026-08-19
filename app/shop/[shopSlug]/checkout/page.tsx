@@ -9,11 +9,12 @@ import { useCart } from '@/lib/hooks/useCart'
 import { useShop } from '@/lib/contexts/shop-context'
 import { formatCurrency } from '@/lib/utils/format'
 import { UpiPaymentQR } from '@/components/shop/UpiPaymentQR'
+import { getCustomerDetails, saveCustomerDetails } from '@/lib/utils/local-customer'
 
 export default function CheckoutPage() {
   const router = useRouter()
   const { items, totalAmount, clearCart } = useCart()
-  const { basePath, apiFetch } = useShop()
+  const { basePath, apiFetch, shopSlug } = useShop()
   const [isSubmitting, startTransition] = useTransition()
   const [paymentScreenshot, setPaymentScreenshot] = useState<File | null>(null)
   const [form, setForm] = useState({ customer_name: '', customer_phone: '', customer_email: '', customer_address: '', pickup_date: '', payment_method: 'upi', advance_amount: '', notes: '' })
@@ -24,7 +25,13 @@ export default function CheckoutPage() {
       .then((r) => r.json())
       .then((d) => { if (d.shop?.upi_id) setUpi(d.shop) })
       .catch(() => {})
-  }, [apiFetch])
+    // No login exists — "remember me" comes from lib/utils/local-customer.ts
+    // instead, saved after a previous order or via the "My Details" page.
+    const saved = getCustomerDetails(shopSlug)
+    if (saved.name || saved.phone || saved.address) {
+      setForm((f) => ({ ...f, customer_name: saved.name || f.customer_name, customer_phone: saved.phone || f.customer_phone, customer_address: saved.address || f.customer_address }))
+    }
+  }, [apiFetch, shopSlug])
 
   function set(field: string, value: string) { setForm(f => ({ ...f, [field]: value })) }
 
@@ -64,6 +71,10 @@ export default function CheckoutPage() {
       if (res.ok) {
         const d = await res.json()
         clearCart()
+        // This checkout form has no address field of its own — only save
+        // name/phone here so an address saved via "My Details" isn't
+        // clobbered with a blank.
+        saveCustomerDetails(shopSlug, { name: form.customer_name, phone: form.customer_phone })
         toast.success(`Order placed! #${d.order.order_number}`)
         router.push(`${basePath}/orders/${d.order.id}`)
       } else {

@@ -12,6 +12,10 @@ export async function GET(req: NextRequest) {
     const categoryId = searchParams.get('category_id')
     const q = searchParams.get('q')
     const featured = searchParams.get('featured')
+    // Comma-separated product ids — used to hydrate the browser-local
+    // wishlist (see lib/utils/local-wishlist.ts) with current product data.
+    const idsParam = searchParams.get('ids')
+    const ids = idsParam ? idsParam.split(',').map((s) => s.trim()).filter(Boolean).slice(0, 100) : null
     const page = parseInt(searchParams.get('page') ?? '1')
     const limit = Math.min(parseInt(searchParams.get('limit') ?? '12'), 50)
     const offset = (page - 1) * limit
@@ -30,7 +34,12 @@ export async function GET(req: NextRequest) {
       .eq('is_active', true)
       .order('is_featured', { ascending: false })
       .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1)
+
+    if (ids && ids.length > 0) {
+      query = query.in('id', ids)
+    } else {
+      query = query.range(offset, offset + limit - 1)
+    }
 
     if (categoryId) query = query.eq('category_id', categoryId)
     if (q) query = query.ilike('name', `%${q}%`)

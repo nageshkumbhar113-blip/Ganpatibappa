@@ -8,6 +8,7 @@ import { Heart, ShoppingCart, MessageCircle, ChevronLeft, Star, Share2, Loader2,
 import { formatCurrency, calculateDiscount } from '@/lib/utils/format'
 import { useCart } from '@/lib/hooks/useCart'
 import { useShop } from '@/lib/contexts/shop-context'
+import { isWishlisted as checkWishlisted, toggleWishlist as toggleLocalWishlist } from '@/lib/utils/local-wishlist'
 
 // The shop stores a plain "view this pin" Maps link (maps?q=lat,lng, captured
 // from the admin's GPS). For a customer, what matters is turn-by-turn
@@ -27,7 +28,7 @@ export default function ProductDetailPage() {
   const params = useParams<{ shopSlug: string; slug: string }>()
   const router = useRouter()
   const { addItem } = useCart()
-  const { basePath, apiFetch } = useShop()
+  const { basePath, apiFetch, shopSlug } = useShop()
 
   const [product, setProduct] = useState<any>(null)
   const [shop, setShop] = useState<any>(null)
@@ -57,7 +58,7 @@ export default function ProductDetailPage() {
             apiFetch(`/api/shop/products?category_id=${p.category_id}&limit=4`).then(r => r.json()).then(d => setRelated(d.products?.filter((rp: any) => rp.id !== p.id).slice(0, 4) ?? [])).catch(() => {})
           }
           apiFetch(`/api/shop/reviews?product_id=${p.id}`).then(r => r.json()).then(d => setReviews(d.reviews ?? [])).catch(() => {})
-          apiFetch(`/api/shop/wishlist?product_id=${p.id}`).then(r => r.json()).then(d => setIsWishlisted(d.isWishlisted ?? false)).catch(() => {})
+          setIsWishlisted(checkWishlisted(shopSlug, p.id))
         }
       }
       if (shopRes.ok) { const sd = await shopRes.json(); setShop(sd.shop) }
@@ -66,9 +67,10 @@ export default function ProductDetailPage() {
     load()
   }, [params.slug])
 
-  async function toggleWishlist() {
-    const res = await apiFetch('/api/shop/wishlist', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ product_id: product.id }) })
-    if (res.ok) { const d = await res.json(); setIsWishlisted(d.added); toast.success(d.added ? 'Added to Wishlist' : 'Removed from Wishlist') }
+  function toggleWishlist() {
+    const { added } = toggleLocalWishlist(shopSlug, product.id)
+    setIsWishlisted(added)
+    toast.success(added ? 'Added to Wishlist' : 'Removed from Wishlist')
   }
 
   function handleAddToCart() {
