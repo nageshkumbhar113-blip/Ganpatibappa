@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { ShoppingCart, Heart, User, Home, Package, LayoutDashboard, LogIn } from 'lucide-react'
+import { ShoppingCart, Heart, User, Home, Package, LayoutDashboard, LogIn, PackageSearch } from 'lucide-react'
 import { useCart } from '@/lib/hooks/useCart'
 import { useShop } from '@/lib/contexts/shop-context'
 import { useEffect, useState } from 'react'
@@ -146,12 +146,14 @@ export function ShopBottomNav() {
     { href: basePath || '/', label: 'Home', icon: Home },
     { href: `${basePath}/products`, label: 'Products', icon: Package },
     { href: `${basePath}/cart`, label: 'Cart', icon: ShoppingCart, badge: totalItems },
+    { href: `${basePath}/orders`, label: 'Orders', icon: PackageSearch },
     { href: `${basePath}/wishlist`, label: 'Wishlist', icon: Heart },
-    {
-      href: isLoggedIn ? `${basePath}/profile` : '/login',
-      label: isLoggedIn ? 'Profile' : 'Login',
-      icon: User,
-    },
+    // There is no customer signup/login anywhere in this app — Profile
+    // (see local-customer.ts) works without one — so this used to point
+    // logged-out visitors (i.e. every real customer) at /login, the
+    // admin/staff sign-in form, which means nothing to them and has
+    // never been where "Profile" should go for a shopper.
+    { href: `${basePath}/profile`, label: 'Profile', icon: User },
     ...(loaded && isAdmin
       ? [{ href: '/admin', label: 'Admin', icon: LayoutDashboard }]
       : loaded && !isLoggedIn
@@ -161,7 +163,7 @@ export function ShopBottomNav() {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-gray-100 shadow-lg sm:hidden">
-      <div className={`grid ${links.length === 6 ? 'grid-cols-6' : 'grid-cols-5'}`}>
+      <div className="grid" style={{ gridTemplateColumns: `repeat(${links.length}, minmax(0, 1fr))` }}>
         {links.map(({ href, label, icon: Icon, badge }) => {
           const isActive =
             href === basePath || href === '/'
