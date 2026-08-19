@@ -30,6 +30,8 @@ export async function GET() {
       slug: shop.slug,
       logo_url: shop.logo_url,
       whatsapp: shop.whatsapp,
+      address: (shop as any).address,
+      maps_url: (shop as any).maps_url,
       show_prices: settings.show_prices !== false,
       allow_whatsapp_order: settings.allow_whatsapp_order !== false,
       about_text: settings.about_text,
