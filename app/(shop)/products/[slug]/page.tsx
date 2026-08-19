@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import {
   Heart, ShoppingCart, MessageCircle, ChevronLeft,
   Star, Share2, Loader2, Plus, Minus,
+  MapPin,
 } from 'lucide-react'
 import { formatCurrency, calculateDiscount } from '@/lib/utils/format'
 import { useCart } from '@/lib/hooks/useCart'
@@ -342,6 +343,20 @@ export default function ProductDetailPage() {
                 <MessageCircle className="h-4 w-4" />
                 Order via WhatsApp
               </a>
+            )}
+            {shop?.maps_url && (
+              <a
+                href={shop.maps_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 rounded-xl border-2 border-blue-500 py-3 text-sm font-semibold text-blue-600 hover:bg-blue-50 transition-colors"
+              >
+                <MapPin className="h-4 w-4" />
+                मूर्ती प्रत्यक्ष पाहा — दुकानाचा पत्ता
+              </a>
+            )}
+            {shop?.address && (
+              <p className="text-center text-xs text-gray-500">📍 {shop.address}</p>
             )}
           </div>
         </div>

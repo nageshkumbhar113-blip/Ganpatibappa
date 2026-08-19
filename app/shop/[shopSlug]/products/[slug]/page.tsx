@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import { Heart, ShoppingCart, MessageCircle, ChevronLeft, Star, Share2, Loader2, Plus, Minus } from 'lucide-react'
+import { Heart, ShoppingCart, MessageCircle, ChevronLeft, Star, Share2, Loader2, Plus, Minus , MapPin} from 'lucide-react'
 import { formatCurrency, calculateDiscount } from '@/lib/utils/format'
 import { useCart } from '@/lib/hooks/useCart'
 import { useShop } from '@/lib/contexts/shop-context'
@@ -173,6 +173,20 @@ export default function ProductDetailPage() {
               <a href={`https://wa.me/${whatsapp}?text=${waText}`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 rounded-xl border-2 border-green-500 py-3 text-sm font-semibold text-green-600 hover:bg-green-50 transition-colors">
                 <MessageCircle className="h-4 w-4" />Order via WhatsApp
               </a>
+            )}
+            {shop?.maps_url && (
+              <a
+                href={shop.maps_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 rounded-xl border-2 border-blue-500 py-3 text-sm font-semibold text-blue-600 hover:bg-blue-50 transition-colors"
+              >
+                <MapPin className="h-4 w-4" />
+                मूर्ती प्रत्यक्ष पाहा — दुकानाचा पत्ता
+              </a>
+            )}
+            {shop?.address && (
+              <p className="text-center text-xs text-gray-500">📍 {shop.address}</p>
             )}
           </div>
         </div>

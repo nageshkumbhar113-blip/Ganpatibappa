@@ -12,7 +12,7 @@ export async function GET() {
   const { data: shop } = await supabase
     .from('shops')
     .select(
-      `id, name, slug, logo_url, whatsapp,
+      `id, name, slug, logo_url, whatsapp, address, maps_url,
        shop_settings(show_prices, allow_whatsapp_order, about_text, meta_title, meta_description)`
     )
     .eq('id', shopId)
