@@ -47,7 +47,19 @@ export default function CheckoutPage() {
         const fd = new FormData()
         fd.append('file', paymentScreenshot)
         const upRes = await apiFetch('/api/shop/payment/screenshot', { method: 'POST', body: fd })
-        if (upRes.ok) { const d = await upRes.json(); screenshotUrl = d.url }
+        if (upRes.ok) {
+          const d = await upRes.json()
+          screenshotUrl = d.url
+        } else {
+          // A shop that hasn't connected its own Cloudinary account now
+          // blocks this upload outright (own-account is required, no
+          // platform fallback) — order still places, but the customer
+          // needs to know their screenshot didn't attach so they can
+          // share it another way (WhatsApp etc.) instead of assuming
+          // the shop already has it.
+          const d = await upRes.json().catch(() => ({}))
+          toast.error(d.error ?? 'Payment screenshot upload failed — order will still be placed, please share the screenshot separately if needed.')
+        }
       }
 
       const res = await apiFetch('/api/shop/orders', {

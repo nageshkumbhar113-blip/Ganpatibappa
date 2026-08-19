@@ -20,13 +20,6 @@ export type UploadFolder =
   | 'payments'
   | 'campaigns'
 
-/**
- * Customer-supplied uploads must never be blocked by the vendor's allowance —
- * a trial shop that hits its cap must still be able to take orders, and the
- * payment screenshot is part of checkout.
- */
-const EXEMPT_FOLDERS: ReadonlySet<UploadFolder> = new Set<UploadFolder>(['payments'])
-
 export interface CloudinaryCredentials {
   cloudName: string
   apiKey: string
@@ -63,6 +56,22 @@ function getPlatformCredentials(): CloudinaryCredentials | null {
   const apiSecret = process.env.CLOUDINARY_API_SECRET
   if (!cloudName || !apiKey || !apiSecret) return null
   return { cloudName, apiKey, apiSecret }
+}
+
+/**
+ * True only for the platform owner's own shop(s) (Shree Arts) — see
+ * migrations/016_platform_cloudinary_exempt.sql. Every other shop must
+ * connect its own Cloudinary before any upload succeeds, payment
+ * screenshots included.
+ */
+async function isPlatformCloudinaryExempt(shopId: string): Promise<boolean> {
+  const supabase = createAdminClient()
+  const { data } = await supabase
+    .from('shops')
+    .select('platform_cloudinary_exempt')
+    .eq('id', shopId)
+    .single()
+  return (data as any)?.platform_cloudinary_exempt === true
 }
 
 /**
@@ -120,11 +129,18 @@ export async function countShopMedia(shopId: string): Promise<number> {
  * Decide which Cloudinary account this shop's next upload should go to, and
  * whether it is allowed at all.
  *
- * - Shop has its own account configured  → use it, uncapped.
- * - Plan grants `cloudinary_own` but none configured → refuse, and say so:
- *   a paying shop should not silently spend the platform's storage.
- * - Otherwise (trial) → shared platform account, capped at
- *   PLATFORM_IMAGE_LIMIT, except for customer-side folders.
+ * - Shop has its own account configured → use it, uncapped.
+ * - Shop is the platform's own reference shop (platform_cloudinary_exempt,
+ *   see migrations/016) → shared platform account, uncapped, every folder
+ *   including payments. This is a deliberate, narrow exception — not a
+ *   general fallback.
+ * - Plan grants `cloudinary_own` but none configured → refuse, every
+ *   folder including payments. A shop that hasn't connected its own
+ *   Cloudinary can't take real orders with a payment screenshot yet —
+ *   checkout itself still completes without one (order creation treats
+ *   payment_screenshot_url as optional), only the image is blocked.
+ * - Otherwise (trial-tier plan, if one is ever active again) → shared
+ *   platform account, capped at PLATFORM_IMAGE_LIMIT.
  */
 export async function resolveCloudinaryForUpload(
   shopId: string,
@@ -135,13 +151,9 @@ export async function resolveCloudinaryForUpload(
 
   const platform = getPlatformCredentials()
 
-  // Customer-side uploads must never be refused. A shop that has not yet
-  // connected its own Cloudinary still has to be able to take orders, and the
-  // payment screenshot is a step in checkout — so these fall back to the
-  // platform account and are never quota-checked.
-  if (EXEMPT_FOLDERS.has(folder)) {
+  if (await isPlatformCloudinaryExempt(shopId)) {
     if (platform) {
-      return { ok: true, creds: platform, mode: 'platform', used: 0, limit: PLATFORM_IMAGE_LIMIT }
+      return { ok: true, creds: platform, mode: 'platform', used: 0, limit: -1 }
     }
     return {
       ok: false,
