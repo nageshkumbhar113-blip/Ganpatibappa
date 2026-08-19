@@ -56,7 +56,7 @@ export async function POST(
       return NextResponse.json({ error: 'Shop not found' }, { status: 404 })
     }
 
-    // Transfer: update shop owner_id and the user's shop_id.
+    // Transfer: update shop owner_id and the new owner's shop_id.
     // Sequential, not Promise.all — this is exactly the kind of write a
     // silently-dropped concurrent request must never touch: a shop pointing
     // at a new owner whose own account was never actually linked back to
@@ -72,6 +72,22 @@ export async function POST(
       .update({ shop_id: params.id })
       .eq('id', newOwner.id)
     if (userErr) throw userErr
+
+    // Clear the PREVIOUS owner's shop_id -- without this, confirmed live:
+    // the old owner keeps full /admin access to a shop they were just
+    // transferred away from (middleware only checks user.shop_id, which
+    // was never unset), and the shop detail page's owner lookup
+    // (users.shop_id = this shop AND role = 'admin') kept finding and
+    // displaying the old owner as current even though shops.owner_id had
+    // already changed. Skipped if the old owner *is* the new owner (no-op
+    // transfer) or never existed.
+    if (shop.owner_id && shop.owner_id !== newOwner.id) {
+      const { error: oldOwnerErr } = await supabase
+        .from('users')
+        .update({ shop_id: null })
+        .eq('id', shop.owner_id)
+      if (oldOwnerErr) throw oldOwnerErr
+    }
 
     // Audit log
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? '0.0.0.0'

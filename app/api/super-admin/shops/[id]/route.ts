@@ -41,13 +41,20 @@ export async function GET(
       return NextResponse.json({ error: 'Shop not found' }, { status: 404 })
     }
 
-    // Get admin owner separately
-    const { data: owner } = await supabase
-      .from('users')
-      .select('id, name, email, phone, role')
-      .eq('shop_id', params.id)
-      .eq('role', 'admin')
-      .single()
+    // Get owner separately, by shops.owner_id (the actual source of
+    // truth) rather than reverse-looking-up users.shop_id -- confirmed
+    // live that a shop transferred to a super_admin account showed the
+    // PREVIOUS owner here instead, since this used to require
+    // role='admin' (super_admin never matches) and relied on the old
+    // owner's shop_id having been cleared, which transfer never did
+    // either (also fixed, in transfer/route.ts).
+    const { data: owner } = shop.owner_id
+      ? await supabase
+          .from('users')
+          .select('id, name, email, phone, role')
+          .eq('id', shop.owner_id)
+          .single()
+      : { data: null }
 
     return NextResponse.json({
       shop: {
