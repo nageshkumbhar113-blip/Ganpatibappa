@@ -13,10 +13,16 @@ export type FeatureKey = keyof PlanFeatures
 /** Check if a shop has access to a specific feature. */
 export async function checkFeature(shopId: string, feature: FeatureKey): Promise<boolean> {
   const supabase = createClient()
-  const { data } = await supabase.rpc('shop_has_feature', {
+  const { data, error } = await supabase.rpc('shop_has_feature', {
     p_shop_id: shopId,
     p_feature: feature,
   })
+  // A real RPC error (bad param, function error, etc.) used to be
+  // indistinguishable from a genuine "plan doesn't include this feature"
+  // false -- both silently fell back to `false ?? false`, so a paid shop
+  // could get quietly locked out of a feature it's actually paying for
+  // with no error anywhere to explain why.
+  if (error) console.error(`[checkFeature] shop_has_feature RPC failed for feature="${feature}":`, error)
   return data ?? false
 }
 

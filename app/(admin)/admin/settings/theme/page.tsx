@@ -36,9 +36,14 @@ export default function ThemePage() {
   useEffect(() => {
     fetch('/api/admin/settings')
       .then((r) => r.json())
+      // theme_config lives on the shops table (see api/admin/settings'
+      // shopUpdate handling), not shop_settings -- this was reading
+      // d.settings.theme_config, which never existed, so a saved theme
+      // always reset back to the Saffron default on next visit even
+      // though the save itself worked and the value really was in the DB.
       .then((d) => {
-        if (d.settings?.theme_config) {
-          setTheme({ ...defaultTheme, ...d.settings.theme_config })
+        if (d.shop?.theme_config && Object.keys(d.shop.theme_config).length > 0) {
+          setTheme({ ...defaultTheme, ...d.shop.theme_config })
         }
       })
       .catch(() => {})
