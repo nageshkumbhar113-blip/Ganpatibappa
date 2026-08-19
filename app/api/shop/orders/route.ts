@@ -105,7 +105,14 @@ export async function POST(req: NextRequest) {
         product_name: product.name,
         price,
         quantity: item.quantity,
-        subtotal: price * item.quantity,
+        // order_items.subtotal is a GENERATED ALWAYS AS (price * quantity)
+        // STORED column — Postgres rejects any insert that supplies it
+        // explicitly. This field used to be sent anyway, which meant the
+        // order_items insert below failed with error 428C9 on literally
+        // every order ever placed, on every shop, silently (the error was
+        // never checked) — the order itself saved fine, but its line
+        // items never did, so every order detail/invoice/report/review
+        // that reads order_items saw nothing was ever ordered.
       }
     })
 
@@ -113,7 +120,7 @@ export async function POST(req: NextRequest) {
     const { data: { user: authUser } } = await supabase.auth.getUser()
 
     // Always compute total server-side — never trust client value
-    const serverTotal = orderItems.reduce((s, i) => s + i.subtotal, 0)
+    const serverTotal = orderItems.reduce((s, i) => s + i.price * i.quantity, 0)
     const orderNumber = generateOrderNumber()
     const advanceAmt = Math.min(advance_amount ?? 0, serverTotal)
     // Payment status is NEVER derived from client-supplied amounts. A customer's
@@ -148,9 +155,16 @@ export async function POST(req: NextRequest) {
 
     if (orderError || !order) throw orderError
 
-    await adminSupabase.from('order_items').insert(
+    const { error: itemsError } = await adminSupabase.from('order_items').insert(
       orderItems.map((item) => ({ ...item, order_id: order.id }))
     )
+    if (itemsError) {
+      // Don't leave a priced order with no record of what was ordered —
+      // roll it back so the customer's checkout fails loudly and they can
+      // retry, instead of silently succeeding with an empty order.
+      await adminSupabase.from('orders').delete().eq('id', order.id)
+      throw itemsError
+    }
 
     return NextResponse.json({ order: { id: order.id, order_number: order.order_number } }, { status: 201 })
   } catch (err: any) {
