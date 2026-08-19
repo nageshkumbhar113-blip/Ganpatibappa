@@ -10,6 +10,10 @@ async function getPlans() {
   const { data } = await supabase
     .from('subscription_plans')
     .select('id, name, display_name, price, duration_days')
+    // Only plans that are actually on sale — a retired plan (e.g. the old free
+    // trial) stays in the table so existing subscriptions keep resolving, but
+    // must never be offered on a new shop.
+    .eq('is_active', true)
     .order('price', { ascending: true })
   return data ?? []
 }

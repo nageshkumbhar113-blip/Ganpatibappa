@@ -133,18 +133,16 @@ export async function resolveCloudinaryForUpload(
   const own = await getOwnCredentials(shopId)
   if (own) return { ok: true, creds: own, mode: 'own' }
 
-  const allowsOwn = await checkFeature(shopId, 'cloudinary_own')
-  if (allowsOwn) {
-    return {
-      ok: false,
-      reason: 'own_required',
-      message:
-        'Your plan uses your own Cloudinary account. Add your Cloudinary credentials under Media Storage before uploading images.',
-    }
-  }
-
   const platform = getPlatformCredentials()
-  if (!platform) {
+
+  // Customer-side uploads must never be refused. A shop that has not yet
+  // connected its own Cloudinary still has to be able to take orders, and the
+  // payment screenshot is a step in checkout — so these fall back to the
+  // platform account and are never quota-checked.
+  if (EXEMPT_FOLDERS.has(folder)) {
+    if (platform) {
+      return { ok: true, creds: platform, mode: 'platform', used: 0, limit: PLATFORM_IMAGE_LIMIT }
+    }
     return {
       ok: false,
       reason: 'platform_unconfigured',
@@ -152,8 +150,22 @@ export async function resolveCloudinaryForUpload(
     }
   }
 
-  if (EXEMPT_FOLDERS.has(folder)) {
-    return { ok: true, creds: platform, mode: 'platform', used: 0, limit: PLATFORM_IMAGE_LIMIT }
+  const allowsOwn = await checkFeature(shopId, 'cloudinary_own')
+  if (allowsOwn) {
+    return {
+      ok: false,
+      reason: 'own_required',
+      message:
+        'Your plan stores images in your own Cloudinary account. Add your Cloudinary credentials under Media Storage before uploading images.',
+    }
+  }
+
+  if (!platform) {
+    return {
+      ok: false,
+      reason: 'platform_unconfigured',
+      message: 'Image uploads are temporarily unavailable. Please try again later.',
+    }
   }
 
   const used = await countShopMedia(shopId)

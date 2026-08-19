@@ -139,7 +139,9 @@ export async function POST(req: NextRequest) {
     await supabase.from('shop_subscriptions').insert({
       shop_id: shopRecord.id,
       plan_id: planId,
-      status: durationDays === 14 ? 'trial' : 'active',
+      // Every shop starts active. Status was previously inferred from a
+      // 14-day duration, which silently made any 14-day paid plan a 'trial'.
+      status: 'active',
       started_at: new Date().toISOString(),
       expires_at: expiresAt.toISOString(),
     })
