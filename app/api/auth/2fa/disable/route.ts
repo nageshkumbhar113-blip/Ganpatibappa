@@ -35,7 +35,11 @@ export async function POST(request: Request) {
   const delta = totp.validate({ token: parsed.data.token, window: 1 })
   if (delta === null) return NextResponse.json({ error: 'Invalid OTP code' }, { status: 400 })
 
-  await admin.from('two_factor_auth' as any).delete().eq('user_id', user.id)
+  const { error: disableError } = await admin.from('two_factor_auth' as any).delete().eq('user_id', user.id)
+  // A dropped delete here would tell the user 2FA is off when the DB
+  // still has it on -- worse than the reverse, since they'd believe
+  // they can log in without their authenticator app and get locked out.
+  if (disableError) return NextResponse.json({ error: 'Failed to disable 2FA' }, { status: 500 })
 
   return NextResponse.json({ success: true })
 }

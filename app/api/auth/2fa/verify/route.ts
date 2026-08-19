@@ -39,10 +39,14 @@ export async function POST(request: NextRequest) {
   const delta = totp.validate({ token: parsed.data.token, window: 1 })
   if (delta === null) return NextResponse.json({ error: 'Invalid OTP code' }, { status: 400 })
 
-  await admin
+  const { error: enableError } = await admin
     .from('two_factor_auth' as any)
     .update({ is_enabled: true })
     .eq('user_id', user.id)
+  // A dropped write here would tell the user 2FA is on when the DB still
+  // has it off, silently leaving their account less protected than they
+  // believe.
+  if (enableError) return NextResponse.json({ error: 'Failed to enable 2FA' }, { status: 500 })
 
   return NextResponse.json({ success: true })
 }
