@@ -31,6 +31,25 @@ export async function PUT(request: Request) {
 
   const supabase = createAdminClient()
 
+  // A shop that isn't the platform's own exempt shop can't satisfy the
+  // "connect your own Cloudinary" requirement by pasting in the
+  // platform's shared cloud_name -- that would silently defeat the
+  // strict own-account policy (see migrations/016 and lib/cloudinary/
+  // quota.ts) for anyone who happened to know/guess it.
+  if (parsed.data.cloud_name === process.env.CLOUDINARY_CLOUD_NAME) {
+    const { data: shopRow } = await supabase
+      .from('shops')
+      .select('platform_cloudinary_exempt')
+      .eq('id', user.shop_id!)
+      .single()
+    if (!(shopRow as any)?.platform_cloudinary_exempt) {
+      return NextResponse.json(
+        { error: 'हा platform चा shared Cloudinary account आहे — कृपया तुमचं स्वतःचं Cloudinary account जोडा.' },
+        { status: 400 }
+      )
+    }
+  }
+
   const updateData: any = {
     cloud_name: parsed.data.cloud_name,
     api_key: parsed.data.api_key,
