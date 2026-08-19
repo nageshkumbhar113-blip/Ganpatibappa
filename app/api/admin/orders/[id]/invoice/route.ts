@@ -21,19 +21,20 @@ export async function GET(
 
     const supabase = createClient()
 
-    const [{ data: order }, { data: shop }] = await Promise.all([
-      supabase
-        .from('orders')
-        .select('*, order_items(product_name, price, quantity, subtotal)')
-        .eq('id', params.id)
-        .eq('shop_id', user.shop_id!)
-        .single(),
-      supabase
-        .from('shops')
-        .select('name, address, whatsapp, logo_url')
-        .eq('id', user.shop_id!)
-        .single(),
-    ])
+    // Sequential, not Promise.all — a dropped concurrent read here means an
+    // invoice PDF with the shop's name/address silently blank, with nothing
+    // to indicate why.
+    const { data: order } = await supabase
+      .from('orders')
+      .select('*, order_items(product_name, price, quantity, subtotal)')
+      .eq('id', params.id)
+      .eq('shop_id', user.shop_id!)
+      .single()
+    const { data: shop } = await supabase
+      .from('shops')
+      .select('name, address, whatsapp, logo_url')
+      .eq('id', user.shop_id!)
+      .single()
 
     if (!order) return NextResponse.json({ error: 'Order not found' }, { status: 404 })
     if (!shop) return NextResponse.json({ error: 'Shop not found' }, { status: 404 })

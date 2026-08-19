@@ -58,28 +58,29 @@ export async function logAction({
   ipAddress?: string
   userAgent?: string
 }): Promise<void> {
-  await Promise.all([
-    writeAuditLog({
+  // Sequential, not Promise.all — a dropped concurrent write here means an
+  // action silently missing from the audit trail (or the activity feed)
+  // with nothing recorded to say so, which defeats the point of an audit log.
+  await writeAuditLog({
+    shop_id: shopId,
+    user_id: userId,
+    action,
+    table_name: tableName,
+    record_id: recordId,
+    old_value: oldValue ?? null,
+    new_value: newValue ?? null,
+    ip_address: ipAddress,
+    user_agent: userAgent,
+  })
+  if (description && shopId) {
+    await writeActivityLog({
       shop_id: shopId,
       user_id: userId,
-      action,
-      table_name: tableName,
-      record_id: recordId,
-      old_value: oldValue ?? null,
-      new_value: newValue ?? null,
+      description,
+      category,
       ip_address: ipAddress,
-      user_agent: userAgent,
-    }),
-    description && shopId
-      ? writeActivityLog({
-          shop_id: shopId,
-          user_id: userId,
-          description,
-          category,
-          ip_address: ipAddress,
-        })
-      : Promise.resolve(),
-  ])
+    })
+  }
 }
 
 /** Alias for logAction — used by API route handlers. */

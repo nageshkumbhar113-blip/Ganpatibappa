@@ -18,19 +18,18 @@ export async function GET(
 
     const supabase = createClient()
 
-    const [{ data: quotation }, { data: shop }] = await Promise.all([
-      supabase
-        .from('quotations')
-        .select('*')
-        .eq('id', params.id)
-        .eq('shop_id', user.shop_id!)
-        .single(),
-      supabase
-        .from('shops')
-        .select('name, address, whatsapp')
-        .eq('id', user.shop_id!)
-        .single(),
-    ])
+    // Sequential, not Promise.all — see invoice/route.ts for why.
+    const { data: quotation } = await supabase
+      .from('quotations')
+      .select('*')
+      .eq('id', params.id)
+      .eq('shop_id', user.shop_id!)
+      .single()
+    const { data: shop } = await supabase
+      .from('shops')
+      .select('name, address, whatsapp')
+      .eq('id', user.shop_id!)
+      .single()
 
     if (!quotation) return NextResponse.json({ error: 'Quotation not found' }, { status: 404 })
     if (!shop) return NextResponse.json({ error: 'Shop not found' }, { status: 404 })

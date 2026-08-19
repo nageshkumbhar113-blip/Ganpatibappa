@@ -56,18 +56,22 @@ export async function POST(
       return NextResponse.json({ error: 'Shop not found' }, { status: 404 })
     }
 
-    // Transfer: update shop owner_id and the user's shop_id
-    await Promise.all([
-      supabase
-        .from('shops')
-        .update({ owner_id: newOwner.id })
-        .eq('id', params.id),
+    // Transfer: update shop owner_id and the user's shop_id.
+    // Sequential, not Promise.all — this is exactly the kind of write a
+    // silently-dropped concurrent request must never touch: a shop pointing
+    // at a new owner whose own account was never actually linked back to
+    // it (or the reverse) leaves the transfer half-done with no error.
+    const { error: shopErr } = await supabase
+      .from('shops')
+      .update({ owner_id: newOwner.id })
+      .eq('id', params.id)
+    if (shopErr) throw shopErr
 
-      supabase
-        .from('users')
-        .update({ shop_id: params.id })
-        .eq('id', newOwner.id),
-    ])
+    const { error: userErr } = await supabase
+      .from('users')
+      .update({ shop_id: params.id })
+      .eq('id', newOwner.id)
+    if (userErr) throw userErr
 
     // Audit log
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? '0.0.0.0'

@@ -36,13 +36,15 @@ export async function canAddProduct(shopId: string): Promise<{
   const supabase = createClient()
   const adminClient = createAdminClient()
 
-  const [limitResult, countResult] = await Promise.all([
-    supabase.rpc('get_plan_product_limit', { p_shop_id: shopId }),
-    adminClient
-      .from('products')
-      .select('*', { count: 'exact', head: true })
-      .eq('shop_id', shopId),
-  ])
+  // Sequential, not Promise.all — a silently-dropped concurrent read here
+  // means a shop's real product count never gets compared against its
+  // limit at all, which can wrongly block a legitimate add or wrongly
+  // admit one past the plan's paid limit.
+  const limitResult = await supabase.rpc('get_plan_product_limit', { p_shop_id: shopId })
+  const countResult = await adminClient
+    .from('products')
+    .select('*', { count: 'exact', head: true })
+    .eq('shop_id', shopId)
 
   const limit = limitResult.data ?? 10
   const current = countResult.count ?? 0

@@ -14,32 +14,29 @@ export async function GET(req: NextRequest) {
     const start = `${dateStr}T00:00:00.000Z`
     const end = `${dateStr}T23:59:59.999Z`
 
-    const [
-      { data: orders },
-      { count: newCustomers },
-      { count: newInquiries },
-    ] = await Promise.all([
-      supabase
-        .from('orders')
-        .select('id, order_number, customer_name, total_amount, advance_amount, status, payment_status, created_at')
-        .eq('shop_id', user.shop_id!)
-        .gte('created_at', start)
-        .lte('created_at', end)
-        .order('created_at', { ascending: false }),
-      supabase
-        .from('users')
-        .select('*', { count: 'exact', head: true })
-        .eq('shop_id', user.shop_id!)
-        .eq('role', 'customer')
-        .gte('created_at', start)
-        .lte('created_at', end),
-      supabase
-        .from('inquiries')
-        .select('*', { count: 'exact', head: true })
-        .eq('shop_id', user.shop_id!)
-        .gte('created_at', start)
-        .lte('created_at', end),
-    ])
+    // Sequential, not Promise.all — a dropped concurrent read here means the
+    // daily report can silently show ₹0 revenue on a day that had real
+    // orders, with nothing indicating the number is wrong rather than true.
+    const { data: orders } = await supabase
+      .from('orders')
+      .select('id, order_number, customer_name, total_amount, advance_amount, status, payment_status, created_at')
+      .eq('shop_id', user.shop_id!)
+      .gte('created_at', start)
+      .lte('created_at', end)
+      .order('created_at', { ascending: false })
+    const { count: newCustomers } = await supabase
+      .from('users')
+      .select('*', { count: 'exact', head: true })
+      .eq('shop_id', user.shop_id!)
+      .eq('role', 'customer')
+      .gte('created_at', start)
+      .lte('created_at', end)
+    const { count: newInquiries } = await supabase
+      .from('inquiries')
+      .select('*', { count: 'exact', head: true })
+      .eq('shop_id', user.shop_id!)
+      .gte('created_at', start)
+      .lte('created_at', end)
 
     const totalRevenue = (orders ?? []).reduce(
       (sum, o) => (o.status !== 'cancelled' ? sum + (o.total_amount ?? 0) : sum),

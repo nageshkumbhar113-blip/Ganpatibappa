@@ -1,11 +1,13 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireSuperAdmin } from '@/lib/middleware/auth-guard'
 import { NextResponse } from 'next/server'
+import { sequential } from '@/lib/utils/sequential'
 
 export async function GET() {
   await requireSuperAdmin()
   const supabase = createAdminClient()
 
+  // Sequential, not Promise.all — see lib/utils/sequential.ts.
   const [
     { count: totalShops },
     { count: activeShops },
@@ -14,7 +16,7 @@ export async function GET() {
     { count: totalCustomers },
     { count: totalGalleryImages },
     { count: totalReviews },
-  ] = await Promise.all([
+  ] = await sequential([
     supabase.from('shops').select('*', { count: 'exact', head: true }).neq('status', 'deleted'),
     supabase.from('shops').select('*', { count: 'exact', head: true }).eq('status', 'active'),
     supabase.from('orders').select('*', { count: 'exact', head: true }),

@@ -69,13 +69,14 @@ export async function suspendExpiredShops(): Promise<number> {
 export async function reactivateShop(shopId: string, newExpiresAt: string): Promise<void> {
   const supabase = createAdminClient()
 
-  await Promise.all([
-    supabase
-      .from('shop_subscriptions')
-      .update({ status: 'active', expires_at: newExpiresAt })
-      .eq('shop_id', shopId),
-    supabase.from('shops').update({ status: 'active' }).eq('id', shopId),
-  ])
+  // Sequential, not Promise.all — one write silently not landing here would
+  // leave a shop's subscription and its actual active/suspended status
+  // disagreeing, with no error to show for it.
+  await supabase
+    .from('shop_subscriptions')
+    .update({ status: 'active', expires_at: newExpiresAt })
+    .eq('shop_id', shopId)
+  await supabase.from('shops').update({ status: 'active' }).eq('id', shopId)
 }
 
 /** Get shops that need renewal reminders (7 / 3 / 1 days before expiry). */

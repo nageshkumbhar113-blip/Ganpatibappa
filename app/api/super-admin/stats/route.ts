@@ -1,6 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireSuperAdmin } from '@/lib/middleware/auth-guard'
 import { NextResponse } from 'next/server'
+import { sequential } from '@/lib/utils/sequential'
 
 export async function GET() {
   await requireSuperAdmin()
@@ -16,7 +17,8 @@ export async function GET() {
     { count: expiredShops },
     { count: totalCustomers },
     { count: newShopsThisMonth },
-  ] = await Promise.all([
+  // Sequential, not Promise.all — see lib/utils/sequential.ts.
+  ] = await sequential([
     supabase.from('shops').select('*', { count: 'exact', head: true }).neq('status', 'deleted'),
     supabase.from('shops').select('*', { count: 'exact', head: true }).eq('status', 'active'),
     supabase

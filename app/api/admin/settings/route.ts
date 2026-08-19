@@ -94,16 +94,22 @@ export async function PUT(req: NextRequest) {
     if (qr_code_url !== undefined) shopUpdate.qr_code_url = qr_code_url
     if (account_holder_name !== undefined) shopUpdate.account_holder_name = account_holder_name
 
-    await Promise.all([
-      Object.keys(settingsUpdate).length > 0
-        ? supabase
-            .from('shop_settings')
-            .upsert({ ...settingsUpdate, shop_id: user.shop_id! }, { onConflict: 'shop_id' })
-        : Promise.resolve(),
-      Object.keys(shopUpdate).length > 0
-        ? supabase.from('shops').update(shopUpdate).eq('id', user.shop_id!)
-        : Promise.resolve(),
-    ])
+    // Sequential, not Promise.all — concurrent Supabase requests issued from a
+    // single serverless invocation have been observed (both for reads and,
+    // as found here, for writes too) to silently drop one of them with no
+    // error: this PUT was returning {success:true} while the shops.update()
+    // carrying maps_url never actually landed. Each awaited write below
+    // surfaces its own error instead of failing silently.
+    if (Object.keys(settingsUpdate).length > 0) {
+      const { error } = await supabase
+        .from('shop_settings')
+        .upsert({ ...settingsUpdate, shop_id: user.shop_id! }, { onConflict: 'shop_id' })
+      if (error) throw error
+    }
+    if (Object.keys(shopUpdate).length > 0) {
+      const { error } = await supabase.from('shops').update(shopUpdate).eq('id', user.shop_id!)
+      if (error) throw error
+    }
 
     return NextResponse.json({ success: true })
   } catch (error: any) {
