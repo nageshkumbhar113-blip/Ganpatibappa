@@ -149,7 +149,11 @@ export default async function SuperAdminDashboard() {
         <CardContent className="p-0">
           <div className="divide-y divide-gray-100">
             {stats.recentShops.map((shop: any) => {
-              const sub = shop.shop_subscriptions?.[0]
+              // shop_subscriptions.shop_id is UNIQUE (one-to-one), so
+              // PostgREST embeds it as a single object, not an array --
+              // `?.[0]` always read undefined, so every shop here showed
+              // "Trial" / unknown status regardless of its real plan.
+              const sub = shop.shop_subscriptions
               const planName = sub?.subscription_plans?.display_name ?? 'Trial'
               const subStatus = sub?.status ?? 'trial'
               const statusColor: Record<string, string> = {

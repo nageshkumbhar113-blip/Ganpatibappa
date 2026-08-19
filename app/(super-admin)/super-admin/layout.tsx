@@ -10,12 +10,14 @@ import {
   Settings,
   LogOut,
   Shield,
+  Package,
 } from 'lucide-react'
 
 const NAV_ITEMS = [
   { href: '/super-admin', label: 'Dashboard', icon: LayoutDashboard, exact: true },
   { href: '/super-admin/shops', label: 'Shops', icon: Store },
   { href: '/super-admin/subscriptions', label: 'Subscriptions', icon: CreditCard },
+  { href: '/super-admin/plans', label: 'Plans & Pricing', icon: Package },
   { href: '/super-admin/system', label: 'System', icon: Activity },
 ]
 

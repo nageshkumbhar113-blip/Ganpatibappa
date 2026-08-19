@@ -25,9 +25,15 @@ export async function GET(
     await requireSuperAdmin()
     const supabase = createAdminClient()
 
+    // shop_subscriptions(*, subscription_plans(*)) embed — the Manage
+    // Subscription page reads shop.shop_subscriptions from this exact
+    // response, and this select never included it: the form always
+    // loaded blank (no current plan/status/expiry shown), so an admin
+    // editing a shop's subscription had no visibility into what it
+    // actually was before overwriting it.
     const { data: shop, error } = await supabase
       .from('shops')
-      .select('*')
+      .select('*, shop_subscriptions(*, subscription_plans(*))')
       .eq('id', params.id)
       .single()
 

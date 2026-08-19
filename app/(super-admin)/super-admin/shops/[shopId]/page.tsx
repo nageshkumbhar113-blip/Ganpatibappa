@@ -48,7 +48,11 @@ export default async function ShopDetailPage({
   const shop = await getShopDetail(params.shopId)
   if (!shop) notFound()
 
-  const sub = (shop.shop_subscriptions as any[])?.[0]
+  // shop_subscriptions.shop_id is UNIQUE (one-to-one), so PostgREST embeds
+  // it as a single object, not an array -- `?.[0]` always read undefined,
+  // so this page showed "Trial" / "₹undefined/mo" / "—" for every shop
+  // regardless of its real plan, price, or expiry.
+  const sub = shop.shop_subscriptions as any
   const plan = sub?.subscription_plans
   const owner = (shop as any).owner
   const daysLeft = sub?.expires_at

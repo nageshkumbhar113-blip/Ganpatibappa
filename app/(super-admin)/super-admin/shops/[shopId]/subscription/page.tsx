@@ -43,7 +43,13 @@ export default function ShopSubscriptionPage() {
     ]).then(([shopData, plansData]) => {
       const shop = shopData.shop
       setShopName(shop?.name ?? '')
-      const sub = shop?.shop_subscriptions?.[0]
+      // shop_subscriptions.shop_id is UNIQUE (one-to-one), so PostgREST
+      // embeds it as a single object, not an array -- `?.[0]` always read
+      // undefined, and the API this page calls didn't even select the
+      // embed in the first place (fixed in api/super-admin/shops/[id]),
+      // so this form always started blank with no visibility into the
+      // shop's actual current plan/status/expiry.
+      const sub = shop?.shop_subscriptions
       if (sub) {
         setCurrent(sub)
         setForm({
