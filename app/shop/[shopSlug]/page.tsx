@@ -41,9 +41,38 @@ async function getShopCatalog(slug: string, categoryId?: string, q?: string, pag
   // NOTE: these were previously run via Promise.all(), which intermittently
   // returned an empty/zero result for the first query under concurrent load
   // against the Supabase REST endpoint. Running them sequentially fixes it.
-  const { data: products, count } = await query
+  const requestUrl = (query as any)?.url?.toString?.() ?? 'n/a'
+  const productsResult = await query
+  const { data: products, count } = productsResult
   const { data: categories } = await supabase.from('categories').select('id, name, image_url').eq('shop_id', shop.id).eq('is_active', true).order('sort_order')
   const { data: gallery } = await supabase.from('gallery').select('id, image_url, caption').eq('shop_id', shop.id).order('sort_order').limit(20)
+
+  // TEMP (test mode): control queries to pinpoint why the main query can return 0
+  const ctlPlain = await supabase.from('products').select('id', { count: 'exact' }).eq('shop_id', shop.id).eq('is_active', true)
+  const ctlFull = await supabase
+    .from('products')
+    .select('id, name, slug, price, offer_price, images, height_cm, material, stock, is_featured', { count: 'exact' })
+    .eq('shop_id', shop.id)
+    .eq('is_active', true)
+    .order('is_featured', { ascending: false })
+    .order('created_at', { ascending: false })
+    .range(0, 11)
+
+  const debug = {
+    shopId: shop.id,
+    slug,
+    categoryIdParam: categoryId ?? null,
+    qParam: q ?? null,
+    page,
+    range: [offset, offset + limit - 1],
+    requestUrl,
+    main: { status: productsResult.status, count: productsResult.count, rows: productsResult.data?.length ?? 0, error: productsResult.error?.message ?? null },
+    ctlPlain: { count: ctlPlain.count, rows: ctlPlain.data?.length ?? 0, error: ctlPlain.error?.message ?? null },
+    ctlFull: { count: ctlFull.count, rows: ctlFull.data?.length ?? 0, error: ctlFull.error?.message ?? null },
+    categories: categories?.length ?? 0,
+    gallery: gallery?.length ?? 0,
+  }
+  console.log('[DEBUG final]', JSON.stringify(debug))
 
   return {
     shop,
@@ -52,6 +81,7 @@ async function getShopCatalog(slug: string, categoryId?: string, q?: string, pag
     gallery: gallery ?? [],
     total: count ?? 0,
     totalPages: Math.ceil((count ?? 0) / limit),
+    debug,
   }
 }
 
@@ -69,7 +99,7 @@ export default async function ShopHomePage({ params, searchParams }: Props) {
   const data = await getShopCatalog(params.shopSlug, searchParams.category_id, searchParams.q, page)
   if (!data) notFound()
 
-  const { shop, products, categories, gallery, total, totalPages } = data
+  const { shop, products, categories, gallery, total, totalPages, debug } = data
   const settings = (shop.shop_settings as any)?.[0] ?? {}
   const showPrices = settings.show_prices !== false
   const base = `/shop/${params.shopSlug}`
@@ -178,6 +208,12 @@ export default async function ShopHomePage({ params, searchParams }: Props) {
 
       {/* ── CATALOG ──────────────────────────────────────────── */}
       <div id="catalog" className="max-w-5xl mx-auto px-4 py-8 space-y-6">
+
+        {/* TEMP TEST-MODE DEBUG PANEL — remove before going live */}
+        <pre className="text-[10px] leading-tight bg-yellow-50 border border-yellow-300 rounded-lg p-3 overflow-x-auto text-yellow-900">
+{JSON.stringify(debug, null, 2)}
+        </pre>
+
 
         {/* Search + category count */}
         <div className="flex items-center gap-3">
