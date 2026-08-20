@@ -67,12 +67,24 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Verify the session via the Supabase Auth server (getUser is secure; getSession trusts cookies)
-  const {
-    data: { user: authUser },
-  } = await supabase.auth.getUser()
-  // Build a lightweight session-like object so the rest of the middleware can stay unchanged
-  const session = authUser ? { user: authUser } : null
+  // Verify the session via the Supabase Auth server (getUser is secure;
+  // getSession trusts cookies) -- but lazily. This is a real network round
+  // trip to Supabase Auth on every single request, and for a customer
+  // browsing a shop's storefront it almost always comes back empty (there
+  // is no customer signup/login anywhere in this app), so paying for it
+  // unconditionally added latency to the highest-traffic path for a result
+  // that gets used, at most, to set an optional x-user-id header. Wrapped
+  // in a memoized getter so admin/super-admin/login, which do need a real
+  // check, still get one -- exactly once, same as before.
+  let sessionPromise: Promise<{ user: { id: string } } | null> | null = null
+  function getSession() {
+    if (!sessionPromise) {
+      sessionPromise = supabase.auth.getUser().then(({ data }) =>
+        data.user ? { user: data.user } : null
+      )
+    }
+    return sessionPromise
+  }
 
   // Every shop existence/status lookup below (path-based, subdomain, custom
   // domain) must use a service-role client, not the anon-key `supabase`
@@ -104,7 +116,10 @@ export async function middleware(request: NextRequest) {
       reqHeaders.set('x-shop-id', shop.id)
       reqHeaders.set('x-shop-slug', shop.slug)
       reqHeaders.set('x-hostname', hostname)
-      if (session) reqHeaders.set('x-user-id', session.user.id)
+      // x-user-id used to be set here from a session check, but nothing in
+      // the app ever reads it (lib/utils/tenant.ts's getUserId() has no
+      // callers) -- confirmed via search before removing. Dropping it
+      // skips an Auth-server round trip on every single storefront request.
 
       const res = NextResponse.next({ request: { headers: reqHeaders } })
       response.cookies.getAll().forEach(({ name, value }) => res.cookies.set(name, value))
@@ -140,6 +155,7 @@ export async function middleware(request: NextRequest) {
   if (isPlatformDomain(hostname)) {
     // ── Super Admin ──────────────────────────────────────────
     if (pathname.startsWith('/super-admin')) {
+      const session = await getSession()
       if (!session) {
         return redirectToLogin(request, pathname)
       }
@@ -162,6 +178,7 @@ export async function middleware(request: NextRequest) {
 
     // ── Admin Panel ──────────────────────────────────────────
     if (pathname.startsWith('/admin')) {
+      const session = await getSession()
       if (!session) {
         return redirectToLogin(request, pathname)
       }
@@ -199,6 +216,7 @@ export async function middleware(request: NextRequest) {
 
     // ── Login page (redirect if already logged in) ───────────
     if (pathname === '/login') {
+      const session = await getSession()
       if (session) {
         const { data: user } = await supabase
           .from('users')
@@ -281,10 +299,10 @@ export async function middleware(request: NextRequest) {
   reqHeaders.set('x-shop-slug', shopSlug ?? '')
   reqHeaders.set('x-hostname', hostname)
   reqHeaders.set('x-real-ip', getRealIP(request.headers))
-
-  if (session) {
-    reqHeaders.set('x-user-id', session.user.id)
-  }
+  // x-user-id used to be set here too -- same dead-code situation as the
+  // path-based branch above (nothing reads it), and the same Auth-server
+  // round trip it required on every subdomain/custom-domain storefront
+  // request is gone with it.
 
   // Re-attach refreshed cookies
   const finalResponse = NextResponse.next({ request: { headers: reqHeaders } })

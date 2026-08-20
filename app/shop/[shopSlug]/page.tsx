@@ -15,12 +15,38 @@ interface Props {
 async function getShopCatalog(slug: string, categoryId?: string, q?: string, page = 1) {
   const supabase = createAdminClient()
 
+  // shop + settings + categories + gallery + banners in ONE round trip via
+  // PostgREST embedded relationships, each with its own filter/order/limit
+  // applied through supabase-js's { foreignTable } option -- verified
+  // working directly against this project's Supabase instance before
+  // landing here. This is not concurrency (the earlier "Promise.all
+  // silently drops a result" bug doesn't apply): it's one HTTP request,
+  // so there's nothing to race. Products stays a separate call since it
+  // needs dynamic pagination/search that doesn't fit an embed cleanly.
   const { data: shop } = await supabase
     .from('shops')
-    .select(`id, name, logo_url, banner_url, whatsapp, maps_url, address, shop_settings(about_text, show_prices, allow_whatsapp_order, youtube_url)`)
+    .select(`
+      id, name, logo_url, banner_url, whatsapp, maps_url, address,
+      shop_settings(about_text, show_prices, allow_whatsapp_order, youtube_url),
+      categories(id, name, image_url),
+      gallery(id, image_url, caption),
+      shop_banners(id, image_url)
+    `)
     .eq('slug', slug)
     .eq('status', 'active')
-    .single()
+    .eq('categories.is_active', true)
+    .eq('shop_banners.is_active', true)
+    .order('sort_order', { foreignTable: 'categories' })
+    .order('sort_order', { foreignTable: 'gallery' })
+    .order('sort_order', { foreignTable: 'shop_banners' })
+    .limit(20, { foreignTable: 'gallery' })
+    // .single<any>() — this select's multiple embedded relationships
+    // combined with per-embed filters poison the generated result type
+    // into `never` (same stale-generated-types root cause documented in
+    // lib/supabase such casts elsewhere this session); harmless at
+    // runtime, this just keeps tsc clean (build already tolerates it via
+    // next.config.mjs's typescript.ignoreBuildErrors).
+    .single<any>()
 
   if (!shop) return null
 
@@ -39,20 +65,14 @@ async function getShopCatalog(slug: string, categoryId?: string, q?: string, pag
   if (categoryId) query = query.eq('category_id', categoryId)
   if (q) query = query.ilike('name', `%${q}%`)
 
-  // NOTE: these were previously run via Promise.all(), which intermittently
-  // returned an empty/zero result for the first query under concurrent load
-  // against the Supabase REST endpoint. Running them sequentially fixes it.
   const { data: products, count } = await query
-  const { data: categories } = await supabase.from('categories').select('id, name, image_url').eq('shop_id', shop.id).eq('is_active', true).order('sort_order')
-  const { data: gallery } = await supabase.from('gallery').select('id, image_url, caption').eq('shop_id', shop.id).order('sort_order').limit(20)
-  const { data: banners } = await supabase.from('shop_banners').select('id, image_url').eq('shop_id', shop.id).eq('is_active', true).order('sort_order')
 
   return {
     shop,
     products: products ?? [],
-    categories: categories ?? [],
-    gallery: gallery ?? [],
-    banners: banners ?? [],
+    categories: (shop as any).categories ?? [],
+    gallery: (shop as any).gallery ?? [],
+    banners: (shop as any).shop_banners ?? [],
     total: count ?? 0,
     totalPages: Math.ceil((count ?? 0) / limit),
   }

@@ -31,17 +31,20 @@ async function getShopCatalog(categoryId?: string, q?: string, page = 1) {
   if (categoryId) query = query.eq('category_id', categoryId)
   if (q) query = query.ilike('name', `%${q}%`)
 
-  // Run sequentially, not Promise.all — concurrent requests to the Supabase
-  // REST endpoint from one function invocation intermittently drop a result.
+  // shop + settings + categories in one round trip via an embedded
+  // relationship (not concurrency -- one HTTP request, nothing to race,
+  // so the earlier Promise.all-drops-a-result issue doesn't apply here).
+  // Products stays separate: it needs dynamic pagination/search.
   const { data: shop } = await supabase
     .from('shops')
-    .select(`name, logo_url, banner_url, whatsapp, shop_settings(about_text, show_prices, allow_whatsapp_order)`)
+    .select(`name, logo_url, banner_url, whatsapp, shop_settings(about_text, show_prices, allow_whatsapp_order), categories(id, name)`)
     .eq('id', shopId)
+    .eq('categories.is_active', true)
+    .order('sort_order', { foreignTable: 'categories' })
     .single()
   const { data: products, count } = await query
-  const { data: categories } = await supabase.from('categories').select('id, name').eq('shop_id', shopId).eq('is_active', true).order('sort_order')
 
-  return { shop, products: products ?? [], categories: categories ?? [], total: count ?? 0, totalPages: Math.ceil((count ?? 0) / limit) }
+  return { shop, products: products ?? [], categories: (shop as any)?.categories ?? [], total: count ?? 0, totalPages: Math.ceil((count ?? 0) / limit) }
 }
 
 export default async function ShopHomePage({ searchParams }: Props) {
