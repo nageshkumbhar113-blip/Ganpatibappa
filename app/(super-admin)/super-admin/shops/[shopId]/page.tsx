@@ -11,6 +11,7 @@ import {
   Phone, MapPin, Globe, Calendar, User
 } from 'lucide-react'
 import { ShopLinksCard } from '@/components/super-admin/ShopLinksCard'
+import { ShopDangerZone } from '@/components/super-admin/ShopDangerZone'
 
 async function getShopDetail(shopId: string) {
   const supabase = createAdminClient()
@@ -205,6 +206,8 @@ export default async function ShopDetailPage({
           </CardContent>
         </Card>
       </div>
+
+      <ShopDangerZone shopId={shop.id} shopName={shop.name} status={shop.status} />
     </div>
   )
 }
