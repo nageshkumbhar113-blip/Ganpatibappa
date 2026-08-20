@@ -58,7 +58,27 @@ export async function PATCH(request: Request) {
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
 
   const supabase = createAdminClient()
-  const { shop_id, plan_id, status, expires_at } = parsed.data
+  const { shop_id, plan_id, status } = parsed.data
+  let expires_at = parsed.data.expires_at
+
+  // Confirmed live: leaving the date picker blank on
+  // /super-admin/subscriptions/create (the natural thing to do when you
+  // just want "give this shop the standard length for its plan") 500'd
+  // outright -- shop_subscriptions.expires_at is NOT NULL with no
+  // default, and the form only sends expires_at when the admin
+  // explicitly filled the date field, so an upsert missing it hit the
+  // constraint directly. Falls back to the plan's own duration_days,
+  // the same calculation the Create Shop wizard already does for a
+  // brand-new subscription, so this page's blank-date behavior matches.
+  if (!expires_at) {
+    const { data: plan } = await supabase
+      .from('subscription_plans')
+      .select('duration_days')
+      .eq('id', plan_id)
+      .single()
+    const days = plan?.duration_days ?? 30
+    expires_at = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString()
+  }
 
   const { data, error } = await supabase
     .from('shop_subscriptions')
