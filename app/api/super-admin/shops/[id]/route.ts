@@ -104,16 +104,21 @@ export async function PATCH(
       return NextResponse.json({ error: 'Update failed', details: error?.message }, { status: 500 })
     }
 
-    // Update owner name/phone in users table if provided
-    if (owner_name !== undefined || owner_phone !== undefined) {
+    // Update owner name/phone in users table if provided -- by owner_id
+    // (the source of truth), not a reverse shop_id+role='admin' lookup.
+    // That reverse lookup is exactly what made the shop detail page keep
+    // showing a stale previous owner after transfer earlier today: it
+    // finds whichever admin-role row still happens to carry this shop_id,
+    // which needn't be today's real owner, and can't ever match a
+    // super_admin owner at all.
+    if (oldShop?.owner_id && (owner_name !== undefined || owner_phone !== undefined)) {
       const ownerUpdate: Record<string, string> = {}
       if (owner_name !== undefined) ownerUpdate.name = owner_name
       if (owner_phone !== undefined) ownerUpdate.phone = owner_phone
       await supabase
         .from('users')
         .update(ownerUpdate)
-        .eq('shop_id', params.id)
-        .eq('role', 'admin')
+        .eq('id', oldShop.owner_id)
     }
 
     // Sync subscription status when shop status changes

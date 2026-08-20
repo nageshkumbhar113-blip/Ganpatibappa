@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ChevronLeft, Loader2, Save } from 'lucide-react'
+import { ChevronLeft, Loader2, Save, KeyRound } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface ShopDetails {
@@ -14,7 +14,9 @@ interface ShopDetails {
   owner_name?: string
   owner_phone?: string
   status: string
-  custom_domain?: string
+  whatsapp?: string
+  address?: string
+  domain?: string
 }
 
 export default function EditShopPage() {
@@ -23,6 +25,9 @@ export default function EditShopPage() {
   const [isPending, startTransition] = useTransition()
   const [isLoading, setIsLoading] = useState(true)
   const [form, setForm] = useState<ShopDetails | null>(null)
+
+  const [newPassword, setNewPassword] = useState('')
+  const [isResettingPassword, startPasswordReset] = useTransition()
 
   useEffect(() => {
     fetch(`/api/super-admin/shops/${shopId}`)
@@ -48,10 +53,12 @@ export default function EditShopPage() {
         body: JSON.stringify({
           name: form.name,
           slug: form.slug,
+          whatsapp: form.whatsapp,
+          address: form.address,
           owner_name: form.owner_name,
           owner_phone: form.owner_phone,
           status: form.status,
-          custom_domain: form.custom_domain || undefined,
+          domain: form.domain || undefined,
         }),
       })
       if (res.ok) {
@@ -60,6 +67,27 @@ export default function EditShopPage() {
       } else {
         const d = await res.json()
         toast.error(d.error ?? 'Failed to update shop')
+      }
+    })
+  }
+
+  function handleResetPassword() {
+    if (newPassword.length < 8) {
+      toast.error('Password किमान 8 अक्षरांचा हवा')
+      return
+    }
+    startPasswordReset(async () => {
+      const res = await fetch(`/api/super-admin/shops/${shopId}/reset-owner-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ new_password: newPassword }),
+      })
+      const d = await res.json().catch(() => ({}))
+      if (res.ok) {
+        toast.success('Owner चा password बदलला — त्यांना नवीन password कळवा')
+        setNewPassword('')
+      } else {
+        toast.error(d.error ?? 'Password reset करता आला नाही')
       }
     })
   }
@@ -77,7 +105,7 @@ export default function EditShopPage() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="p-6 space-y-5 max-w-lg">
+    <div className="p-6 space-y-5 max-w-lg">
       <div className="flex items-center gap-3">
         <Link href="/super-admin/shops" className="text-gray-500 hover:text-gray-700">
           <ChevronLeft className="h-5 w-5" />
@@ -88,100 +116,148 @@ export default function EditShopPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 space-y-4">
-        <h2 className="text-sm font-bold text-gray-900">Shop Details</h2>
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 space-y-4">
+          <h2 className="text-sm font-bold text-gray-900">Shop Details</h2>
 
-        <div>
-          <label className="text-xs font-medium text-gray-600 block mb-1">Shop Name *</label>
-          <input
-            required
-            value={form.name}
-            onChange={(e) => set('name', e.target.value)}
-            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
-          />
-        </div>
-
-        <div>
-          <label className="text-xs font-medium text-gray-600 block mb-1">Slug *</label>
-          <div className="flex items-center gap-1">
+          <div>
+            <label className="text-xs font-medium text-gray-600 block mb-1">Shop Name *</label>
             <input
               required
-              value={form.slug}
-              onChange={(e) => set('slug', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))}
-              className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+              value={form.name}
+              onChange={(e) => set('name', e.target.value)}
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
             />
-            <span className="text-xs text-gray-400">.ganpatibappa.com</span>
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-gray-600 block mb-1">Slug *</label>
+            <div className="flex items-center gap-1">
+              <input
+                required
+                value={form.slug}
+                onChange={(e) => set('slug', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))}
+                className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+              />
+              <span className="text-xs text-gray-400">.ganpatibappa.com</span>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-gray-600 block mb-1">WhatsApp Number</label>
+            <input
+              type="tel"
+              value={form.whatsapp ?? ''}
+              onChange={(e) => set('whatsapp', e.target.value)}
+              placeholder="+919876543210"
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+            />
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-gray-600 block mb-1">Address</label>
+            <textarea
+              rows={2}
+              value={form.address ?? ''}
+              onChange={(e) => set('address', e.target.value)}
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 resize-none"
+            />
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-gray-600 block mb-1">Custom Domain</label>
+            <input
+              type="text"
+              value={form.domain ?? ''}
+              onChange={(e) => set('domain', e.target.value)}
+              placeholder="www.example.com"
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+            />
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-gray-600 block mb-1">Status *</label>
+            <select
+              value={form.status}
+              onChange={(e) => set('status', e.target.value)}
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+            >
+              <option value="active">Active</option>
+              <option value="suspended">Suspended</option>
+              <option value="pending">Pending</option>
+              <option value="deleted">Deleted</option>
+            </select>
           </div>
         </div>
 
-        <div>
-          <label className="text-xs font-medium text-gray-600 block mb-1">Custom Domain</label>
-          <input
-            type="url"
-            value={form.custom_domain ?? ''}
-            onChange={(e) => set('custom_domain', e.target.value)}
-            placeholder="https://www.example.com"
-            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
-          />
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 space-y-4">
+          <h2 className="text-sm font-bold text-gray-900">Owner Details</h2>
+
+          <div>
+            <label className="text-xs font-medium text-gray-600 block mb-1">Owner Email</label>
+            <input
+              type="email"
+              value={form.owner_email}
+              disabled
+              className="w-full rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 text-sm text-gray-400 cursor-not-allowed"
+            />
+            <p className="text-xs text-gray-400 mt-1">Email cannot be changed from here.</p>
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-gray-600 block mb-1">Owner Name</label>
+            <input
+              value={form.owner_name ?? ''}
+              onChange={(e) => set('owner_name', e.target.value)}
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+            />
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-gray-600 block mb-1">Owner Phone</label>
+            <input
+              type="tel"
+              value={form.owner_phone ?? ''}
+              onChange={(e) => set('owner_phone', e.target.value)}
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+            />
+          </div>
         </div>
 
-        <div>
-          <label className="text-xs font-medium text-gray-600 block mb-1">Status *</label>
-          <select
-            value={form.status}
-            onChange={(e) => set('status', e.target.value)}
-            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+        <button
+          type="submit"
+          disabled={isPending}
+          className="w-full rounded-xl bg-orange-500 py-3 text-sm font-bold text-white hover:bg-orange-600 disabled:opacity-60 flex items-center justify-center gap-2 transition-colors"
+        >
+          {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          Save Changes
+        </button>
+      </form>
+
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 space-y-3">
+        <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+          <KeyRound className="h-4 w-4 text-gray-400" /> Owner Password Reset करा
+        </h2>
+        <p className="text-xs text-gray-500">Owner ला login होत नसेल तर इथून नवीन password सेट करा — त्यांचा जुना password न विचारता.</p>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <input
+            type="text"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            placeholder="नवीन password (किमान 8 अक्षरं)"
+            className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+          />
+          <button
+            type="button"
+            onClick={handleResetPassword}
+            disabled={isResettingPassword || newPassword.length < 8}
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-gray-800 px-4 py-2 text-sm font-medium text-white hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
           >
-            <option value="active">Active</option>
-            <option value="suspended">Suspended</option>
-            <option value="pending">Pending</option>
-            <option value="deleted">Deleted</option>
-          </select>
+            {isResettingPassword ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
+            Password Set करा
+          </button>
         </div>
       </div>
-
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 space-y-4">
-        <h2 className="text-sm font-bold text-gray-900">Owner Details</h2>
-
-        <div>
-          <label className="text-xs font-medium text-gray-600 block mb-1">Owner Email</label>
-          <input
-            type="email"
-            value={form.owner_email}
-            disabled
-            className="w-full rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 text-sm text-gray-400 cursor-not-allowed"
-          />
-          <p className="text-xs text-gray-400 mt-1">Email cannot be changed from here.</p>
-        </div>
-
-        <div>
-          <label className="text-xs font-medium text-gray-600 block mb-1">Owner Name</label>
-          <input
-            value={form.owner_name ?? ''}
-            onChange={(e) => set('owner_name', e.target.value)}
-            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
-          />
-        </div>
-
-        <div>
-          <label className="text-xs font-medium text-gray-600 block mb-1">Owner Phone</label>
-          <input
-            type="tel"
-            value={form.owner_phone ?? ''}
-            onChange={(e) => set('owner_phone', e.target.value)}
-            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
-          />
-        </div>
-      </div>
-
-      <button
-        type="submit"
-        disabled={isPending}
-        className="w-full rounded-xl bg-orange-500 py-3 text-sm font-bold text-white hover:bg-orange-600 disabled:opacity-60 flex items-center justify-center gap-2 transition-colors"
-      >
-        {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-        Save Changes
-      </button>
-    </form>
+    </div>
   )
 }
